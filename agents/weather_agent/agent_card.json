@@ -1,0 +1,59 @@
+{
+  "name": "Weather Agent",
+  "description": "Provides weather information and travel suitability analysis using Open-Meteo API",
+  "version": "1.0.0",
+  "endpoint": "http://localhost:8001",
+  "skills": [
+    {
+      "name": "get_weather_info",
+      "description": "Get weather forecast for a city",
+      "parameters": {
+        "city": {
+          "type": "string",
+          "description": "City name",
+          "required": true
+        },
+        "days": {
+          "type": "integer",
+          "description": "Number of forecast days (1-16)",
+          "required": false,
+          "default": 7
+        }
+      },
+      "returns": {
+        "city": "string",
+        "country": "string",
+        "forecast": "array of daily weather data",
+        "summary": "string"
+      }
+    },
+    {
+      "name": "check_weather_suitability",
+      "description": "Analyze weather suitability for travel",
+      "parameters": {
+        "city": {
+          "type": "string",
+          "description": "City name",
+          "required": true
+        },
+        "days": {
+          "type": "integer",
+          "description": "Number of days to analyze",
+          "required": false,
+          "default": 7
+        }
+      },
+      "returns": {
+        "city": "string",
+        "suitability_score": "number (0-100)",
+        "good_days": "integer",
+        "total_days": "integer",
+        "warnings": "array of strings",
+        "recommendation": "string"
+      }
+    }
+  ],
+  "tags": ["weather", "forecast", "travel", "open-meteo"],
+  "author": "Bob",
+  "license": "MIT"
+}

@@ -1,0 +1,91 @@
+{
+  "name": "Attraction Agent",
+  "description": "Searches and recommends tourist attractions using Tavily search API",
+  "version": "1.0.0",
+  "endpoint": "http://localhost:8002",
+  "skills": [
+    {
+      "name": "search_attractions",
+      "description": "Search for tourist attractions in a city",
+      "parameters": {
+        "city": {
+          "type": "string",
+          "description": "City name",
+          "required": true
+        },
+        "preferences": {
+          "type": "array",
+          "description": "User preferences (e.g., historical, food, nature)",
+          "required": false,
+          "default": []
+        },
+        "max_results": {
+          "type": "integer",
+          "description": "Maximum number of results",
+          "required": false,
+          "default": 5
+        }
+      },
+      "returns": {
+        "city": "string",
+        "preferences": "array",
+        "attractions": "array of attraction objects",
+        "count": "integer"
+      }
+    },
+    {
+      "name": "get_attraction_details",
+      "description": "Get detailed information about a specific attraction",
+      "parameters": {
+        "attraction_name": {
+          "type": "string",
+          "description": "Name of the attraction",
+          "required": true
+        },
+        "city": {
+          "type": "string",
+          "description": "City where the attraction is located",
+          "required": false
+        }
+      },
+      "returns": {
+        "name": "string",
+        "city": "string",
+        "details": "array of detail objects"
+      }
+    },
+    {
+      "name": "recommend_attractions",
+      "description": "Recommend attractions organized by days",
+      "parameters": {
+        "city": {
+          "type": "string",
+          "description": "City name",
+          "required": true
+        },
+        "preferences": {
+          "type": "array",
+          "description": "User preferences",
+          "required": false,
+          "default": []
+        },
+        "days": {
+          "type": "integer",
+          "description": "Number of travel days",
+          "required": false,
+          "default": 3
+        }
+      },
+      "returns": {
+        "city": "string",
+        "days": "integer",
+        "preferences": "array",
+        "daily_recommendations": "array of daily attraction lists",
+        "total_attractions": "integer"
+      }
+    }
+  ],
+  "tags": ["attractions", "tourism", "search", "tavily"],
+  "author": "Bob",
+  "license": "MIT"
+}

@@ -1,0 +1,63 @@
+{
+  "name": "Travel Planner Orchestrator",
+  "description": "Orchestrates travel planning workflow using LangGraph and A2A protocol",
+  "version": "1.0.0",
+  "endpoint": "http://localhost:8000",
+  "capabilities": [
+    "Query parsing and intent extraction",
+    "Multi-agent workflow orchestration",
+    "Weather, attraction, and itinerary coordination",
+    "LangGraph state management"
+  ],
+  "endpoints": [
+    {
+      "path": "/query",
+      "method": "POST",
+      "description": "Process natural language travel planning query",
+      "parameters": {
+        "query": {
+          "type": "string",
+          "description": "Natural language query (e.g., 'Plan 3 days in Tokyo')",
+          "required": true
+        }
+      }
+    },
+    {
+      "path": "/plan",
+      "method": "POST",
+      "description": "Create travel plan with explicit parameters",
+      "parameters": {
+        "destination": {
+          "type": "string",
+          "required": true
+        },
+        "days": {
+          "type": "integer",
+          "default": 3
+        },
+        "preferences": {
+          "type": "array",
+          "default": []
+        }
+      }
+    },
+    {
+      "path": "/agents",
+      "method": "GET",
+      "description": "List all discovered agents"
+    },
+    {
+      "path": "/health",
+      "method": "GET",
+      "description": "Health check"
+    }
+  ],
+  "managed_agents": [
+    "weather_agent",
+    "attraction_agent",
+    "itinerary_agent"
+  ],
+  "tags": ["orchestrator", "langgraph", "a2a", "travel-planning"],
+  "author": "Bob",
+  "license": "MIT"
+}

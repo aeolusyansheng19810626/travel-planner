@@ -1,0 +1,95 @@
+{
+  "name": "Itinerary Agent",
+  "description": "Creates detailed travel itineraries using Groq LLM",
+  "version": "1.0.0",
+  "endpoint": "http://localhost:8003",
+  "skills": [
+    {
+      "name": "create_itinerary",
+      "description": "Create a complete travel itinerary for a destination",
+      "parameters": {
+        "city": {
+          "type": "string",
+          "description": "Destination city",
+          "required": true
+        },
+        "days": {
+          "type": "integer",
+          "description": "Number of travel days",
+          "required": false,
+          "default": 3
+        },
+        "preferences": {
+          "type": "array",
+          "description": "User preferences (e.g., historical, food, nature)",
+          "required": false,
+          "default": []
+        },
+        "weather_info": {
+          "type": "object",
+          "description": "Weather forecast data",
+          "required": false
+        },
+        "attractions": {
+          "type": "array",
+          "description": "List of recommended attractions",
+          "required": false,
+          "default": []
+        }
+      },
+      "returns": {
+        "city": "string",
+        "days": "integer",
+        "daily_plans": "array of daily itinerary objects",
+        "general_tips": "array of strings"
+      }
+    },
+    {
+      "name": "optimize_route",
+      "description": "Optimize route between multiple attractions",
+      "parameters": {
+        "attractions": {
+          "type": "array",
+          "description": "List of attractions to visit",
+          "required": true
+        },
+        "start_location": {
+          "type": "string",
+          "description": "Starting location",
+          "required": false
+        }
+      },
+      "returns": {
+        "optimized_route": "array of attractions in optimal order",
+        "total_attractions": "integer",
+        "start_location": "string"
+      }
+    },
+    {
+      "name": "suggest_schedule",
+      "description": "Suggest time schedule for activities",
+      "parameters": {
+        "activities": {
+          "type": "array",
+          "description": "List of activities with estimated time",
+          "required": true
+        },
+        "start_time": {
+          "type": "string",
+          "description": "Start time (HH:MM format)",
+          "required": false,
+          "default": "09:00"
+        }
+      },
+      "returns": {
+        "schedule": "array of scheduled activities",
+        "total_activities": "integer",
+        "start_time": "string",
+        "estimated_end_time": "string"
+      }
+    }
+  ],
+  "tags": ["itinerary", "planning", "llm", "groq"],
+  "author": "Bob",
+  "license": "MIT"
+}
