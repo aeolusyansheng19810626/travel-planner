@@ -145,7 +145,7 @@ def parse_query(state: TravelPlanState) -> TravelPlanState:
         3. Extract the number of days (integer). If not specified, default to 3.
         4. Extract any preferences (e.g., ["historical", "food", "nature", "shopping", "culture", "nightlife"]).
         
-        Respond strictly with a JSON object in this format:
+        Respond strictly with only a valid JSON object in this format:
         {{
           "is_travel_query": true/false,
           "destination": "City Name" or null if not found,
@@ -154,7 +154,18 @@ def parse_query(state: TravelPlanState) -> TravelPlanState:
         }}
         """
         
-        intent_res = client.chat_completion([{"role": "user", "content": prompt}], temperature=0.1, max_tokens=150)
+        intent_res = client.chat_completion(
+            [
+                {
+                    "role": "system",
+                    "content": "You extract travel-planning intent. Return only valid JSON."
+                },
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.1,
+            max_tokens=500,
+            response_format={"type": "json_object"}
+        )
         
         if not intent_res:
             raise ValueError("LLM returned None")

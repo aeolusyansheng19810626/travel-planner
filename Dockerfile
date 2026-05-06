@@ -32,7 +32,6 @@ set -e\n\
 echo "GROQ_API_KEY=${GROQ_API_KEY}" > /app/.env\n\
 echo "TAVILY_API_KEY=${TAVILY_API_KEY}" >> /app/.env\n\
 echo "DEMO_MODE=${DEMO_MODE:-false}" >> /app/.env\n\
-echo "GROQ_MODEL=${GROQ_MODEL:-llama-3.3-70b-versatile}" >> /app/.env\n\
 \n\
 echo "Starting Travel Planner services..."\n\
 echo "GROQ_API_KEY is set: $([ -n "${GROQ_API_KEY}" ] && echo "YES" || echo "NO")"\n\

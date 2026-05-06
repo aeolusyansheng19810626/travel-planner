@@ -3,7 +3,7 @@ LLM client with fallback mechanism for Orchestrator
 """
 from groq import Groq
 import os
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 
 # Model fallback list (from best to fastest)
 MODELS = [
@@ -22,27 +22,42 @@ class GroqClientWithFallback:
         self.client = Groq(api_key=self.api_key) if self.api_key else None
         self.models = MODELS.copy()
     
-    def chat_completion(self, messages: List, temperature: float = 0.7, max_tokens: int = 1000) -> Optional[str]:
+    def chat_completion(
+        self,
+        messages: List,
+        temperature: float = 0.7,
+        max_tokens: int = 1000,
+        response_format: Optional[Dict[str, Any]] = None
+    ) -> str:
         """
         Call Groq with automatic fallback to next model if current fails
         """
         if not self.client:
-            return None
+            raise ValueError("Groq client not initialized (missing API key?)")
         
+        errors = []
         for model in self.models:
             try:
-                response = self.client.chat.completions.create(
-                    model=model,
-                    messages=messages,
-                    temperature=temperature,
-                    max_tokens=max_tokens
-                )
-                return response.choices[0].message.content
+                request_kwargs = {
+                    "model": model,
+                    "messages": messages,
+                    "temperature": temperature,
+                    "max_tokens": max_tokens,
+                }
+                if response_format:
+                    request_kwargs["response_format"] = response_format
+
+                response = self.client.chat.completions.create(**request_kwargs)
+                content = response.choices[0].message.content
+                if not content:
+                    raise ValueError("empty response content")
+                return content
             except Exception as e:
                 print(f"Model {model} failed: {e}, trying next...")
+                errors.append(f"{model}: {str(e)}")
                 continue
         
         # All models failed
-        return None
+        raise RuntimeError(f"All models failed. Details: {'; '.join(errors)}")
 
 # Made with Bob

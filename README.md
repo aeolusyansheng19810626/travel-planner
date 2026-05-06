@@ -209,7 +209,6 @@ TAVILY_API_KEY=你的tavily_api密钥
 
 # 可选
 DEMO_MODE=false                    # 设为"true"可在无API密钥时演示
-GROQ_MODEL=llama-3.3-70b-versatile # 使用的LLM模型
 ```
 
 ### 端口配置

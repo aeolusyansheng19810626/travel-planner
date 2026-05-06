@@ -29,7 +29,13 @@ else:
 
 # Initialize Groq client
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+MODELS = [
+    "openai/gpt-oss-120b",
+    "openai/gpt-oss-20b",
+    "qwen/qwen3-32b",
+    "meta-llama/llama-4-scout-17b-16e-instruct",
+    "llama-3.1-8b-instant"
+]
 groq_client = None
 if not DEMO_MODE and GROQ_API_KEY:
     try:
@@ -211,14 +217,29 @@ async def clean_attractions_with_llm(raw_results: List[Dict], city: str, lang: s
     """
     
     try:
-        response = groq_client.chat.completions.create(
-            model=GROQ_MODEL,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.3,
-            max_tokens=1500,
-            response_format={"type": "json_object"}
-        )
-        content = response.choices[0].message.content
+        content = None
+        errors = []
+        for model in MODELS:
+            try:
+                response = groq_client.chat.completions.create(
+                    model=model,
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.3,
+                    max_tokens=1500,
+                    response_format={"type": "json_object"}
+                )
+                content = response.choices[0].message.content
+                if not content:
+                    raise ValueError("empty response content")
+                break
+            except Exception as e:
+                print(f"Model {model} failed during attraction cleanup: {e}, trying next...")
+                errors.append(f"{model}: {str(e)}")
+                continue
+
+        if not content:
+            raise RuntimeError(f"All models failed. Details: {'; '.join(errors)}")
+
         data = json.loads(content)
         cleaned = data.get("attractions", [])
         
