@@ -282,6 +282,10 @@ for message in st.session_state.messages:
             response = message["content"]
             if response.get("status") == "success":
                 result = response.get("result", {})
+                models_used = result.get("models_used") or response.get("models_used") or {}
+                if models_used:
+                    model_text = ", ".join(f"{step}: {model}" for step, model in models_used.items())
+                    st.caption(f"Models used: {model_text}")
                 
                 # Display destination and days
                 col1, col2, col3 = st.columns(3)
@@ -351,6 +355,10 @@ for message in st.session_state.messages:
                             st.write(f"- {msg}")
             
             elif response.get("status") == "error":
+                models_used = response.get("models_used") or {}
+                if models_used:
+                    model_text = ", ".join(f"{step}: {model}" for step, model in models_used.items())
+                    st.caption(f"Models used: {model_text}")
                 st.error(f"{t('error')}: {response.get('error', 'Unknown error')}")
 
 # Chat input

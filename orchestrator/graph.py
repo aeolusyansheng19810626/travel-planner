@@ -15,6 +15,7 @@ class TravelPlanState(TypedDict):
     weather_info: Optional[Dict]       # Weather data from weather agent
     attractions: Optional[List[Dict]]  # Attractions from attraction agent
     itinerary: Optional[Dict]          # Final itinerary from itinerary agent
+    models_used: Dict[str, str]        # LLM models used by each step
     messages: List[str]                # Processing messages
     error: Optional[str]               # Error message if any
 
@@ -142,6 +143,7 @@ def parse_query(state: TravelPlanState) -> TravelPlanState:
     query = state["query"].lower()
     original_query = state["query"]
     messages = state.get("messages", [])
+    models_used = state.get("models_used", {})
     
     # Detect language
     language = detect_language(original_query)
@@ -184,6 +186,8 @@ def parse_query(state: TravelPlanState) -> TravelPlanState:
             max_tokens=500,
             response_format={"type": "json_object"}
         )
+        if client.last_model:
+            models_used["query_parser"] = client.last_model
         
         if not intent_res:
             raise ValueError("LLM returned None")
@@ -246,6 +250,7 @@ def parse_query(state: TravelPlanState) -> TravelPlanState:
         "destination": destination,
         "days": days,
         "preferences": preferences,
+        "models_used": models_used,
         "messages": messages
     }
 
@@ -301,10 +306,14 @@ async def search_attractions(state: TravelPlanState) -> TravelPlanState:
     if result.get("status") == "success":
         attraction_data = result.get("result")
         attractions = attraction_data.get("attractions", []) if attraction_data else []
+        models_used = state.get("models_used", {})
+        if attraction_data and attraction_data.get("model_used"):
+            models_used["attraction_cleaner"] = attraction_data["model_used"]
         messages.append(get_msg("attr_success", lang, count=len(attractions)))
         return {
             **state,
             "attractions": attractions,
+            "models_used": models_used,
             "messages": messages
         }
     else:
@@ -335,10 +344,14 @@ async def generate_itinerary(state: TravelPlanState) -> TravelPlanState:
     
     if result.get("status") == "success":
         itinerary = result.get("result")
+        models_used = state.get("models_used", {})
+        if itinerary and itinerary.get("model_used"):
+            models_used["itinerary_generator"] = itinerary["model_used"]
         messages.append(get_msg("itin_success", lang))
         return {
             **state,
             "itinerary": itinerary,
+            "models_used": models_used,
             "messages": messages
         }
     else:

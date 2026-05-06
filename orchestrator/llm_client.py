@@ -21,6 +21,7 @@ class GroqClientWithFallback:
         self.api_key = api_key or os.getenv("GROQ_API_KEY")
         self.client = Groq(api_key=self.api_key) if self.api_key else None
         self.models = MODELS.copy()
+        self.last_model: Optional[str] = None
     
     def chat_completion(
         self,
@@ -51,6 +52,7 @@ class GroqClientWithFallback:
                 content = response.choices[0].message.content
                 if not content:
                     raise ValueError("empty response content")
+                self.last_model = model
                 return content
             except Exception as e:
                 print(f"Model {model} failed: {e}, trying next...")

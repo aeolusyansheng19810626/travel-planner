@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Tuple
 import json
 import os
 from pathlib import Path
@@ -191,10 +191,10 @@ def get_demo_attractions(city: str, preferences: Optional[List[str]] = None) -> 
     
     return attractions
 
-async def clean_attractions_with_llm(raw_results: List[Dict], city: str, lang: str) -> List[Dict]:
+async def clean_attractions_with_llm(raw_results: List[Dict], city: str, lang: str) -> Tuple[List[Dict], Optional[str]]:
     """Clean and extract attractions using LLM"""
     if not groq_client or not raw_results:
-        return raw_results
+        return raw_results, None
     
     lang_name = "English"
     if lang == "zh": lang_name = "Chinese"
@@ -219,6 +219,7 @@ async def clean_attractions_with_llm(raw_results: List[Dict], city: str, lang: s
     try:
         content = None
         errors = []
+        used_model = None
         for model in MODELS:
             try:
                 response = groq_client.chat.completions.create(
@@ -231,6 +232,7 @@ async def clean_attractions_with_llm(raw_results: List[Dict], city: str, lang: s
                 content = response.choices[0].message.content
                 if not content:
                     raise ValueError("empty response content")
+                used_model = model
                 break
             except Exception as e:
                 print(f"Model {model} failed during attraction cleanup: {e}, trying next...")
@@ -258,12 +260,17 @@ async def clean_attractions_with_llm(raw_results: List[Dict], city: str, lang: s
                         c["description"] = r["description"]
                     break
         
-        return cleaned if cleaned else raw_results
+        return (cleaned if cleaned else raw_results), used_model
     except Exception as e:
         print(f"LLM cleaning failed: {e}")
-        return raw_results
+        return raw_results, None
 
-async def search_attractions_tavily(city: str, preferences: Optional[List[str]] = None, max_results: int = 5, lang: str = "en") -> List[Dict[str, Any]]:
+async def search_attractions_tavily(
+    city: str,
+    preferences: Optional[List[str]] = None,
+    max_results: int = 5,
+    lang: str = "en"
+) -> Tuple[List[Dict[str, Any]], Optional[str]]:
     """Search for attractions using Tavily API"""
     if not tavily_client:
         raise HTTPException(status_code=500, detail="Tavily client not initialized")
@@ -298,9 +305,9 @@ async def search_attractions_tavily(city: str, preferences: Optional[List[str]] 
             })
             
         # Clean with LLM
-        cleaned_attractions = await clean_attractions_with_llm(raw_attractions, city, lang)
+        cleaned_attractions, model_used = await clean_attractions_with_llm(raw_attractions, city, lang)
         
-        return cleaned_attractions
+        return cleaned_attractions, model_used
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Tavily search failed: {str(e)}")
 
@@ -337,14 +344,16 @@ async def execute_task(request: TaskRequest):
             
             if DEMO_MODE or not tavily_client:
                 attractions = get_demo_attractions(city, preferences)
+                model_used = None
             else:
-                attractions = await search_attractions_tavily(city, preferences, max_results, lang)
+                attractions, model_used = await search_attractions_tavily(city, preferences, max_results, lang)
             
             result = {
                 "city": city,
                 "preferences": preferences,
                 "attractions": attractions,
-                "count": len(attractions)
+                "count": len(attractions),
+                "model_used": model_used
             }
             
             return TaskResponse(status="success", result=result)
@@ -401,7 +410,7 @@ async def execute_task(request: TaskRequest):
             if DEMO_MODE or not tavily_client:
                 all_attractions = get_demo_attractions(city, preferences)
             else:
-                all_attractions = await search_attractions_tavily(city, preferences, max_results=10)
+                all_attractions, _ = await search_attractions_tavily(city, preferences, max_results=10)
             
             # Organize by days
             attractions_per_day = max(2, len(all_attractions) // days)

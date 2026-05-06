@@ -23,6 +23,7 @@ class QueryResponse(BaseModel):
     result: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
     messages: Optional[List[str]] = None
+    models_used: Optional[Dict[str, str]] = None
 
 def discover_agents():
     """Discover all agents via A2A protocol"""
@@ -118,6 +119,7 @@ async def process_query(request: QueryRequest):
             "weather_info": None,
             "attractions": None,
             "itinerary": None,
+            "models_used": {},
             "messages": [],
             "error": None
         }
@@ -130,7 +132,8 @@ async def process_query(request: QueryRequest):
             return QueryResponse(
                 status="error",
                 error=final_state["error"],
-                messages=final_state.get("messages", [])
+                messages=final_state.get("messages", []),
+                models_used=final_state.get("models_used", {})
             )
         
         # Format result
@@ -141,13 +144,15 @@ async def process_query(request: QueryRequest):
             "preferences": final_state["preferences"],
             "weather": final_state.get("weather_info"),
             "attractions": final_state.get("attractions"),
-            "itinerary": final_state.get("itinerary")
+            "itinerary": final_state.get("itinerary"),
+            "models_used": final_state.get("models_used", {})
         }
         
         return QueryResponse(
             status="success",
             result=result,
-            messages=final_state.get("messages", [])
+            messages=final_state.get("messages", []),
+            models_used=final_state.get("models_used", {})
         )
     
     except Exception as e:

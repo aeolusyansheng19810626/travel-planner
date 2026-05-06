@@ -256,6 +256,7 @@ Hard requirements:
         
         # Call Groq API with fallback
         response = None
+        model_used = None
         for model in MODELS:
             try:
                 response = groq_client.chat.completions.create(
@@ -273,6 +274,7 @@ Hard requirements:
                     temperature=0.7,
                     max_tokens=3500
                 )
+                model_used = model
                 break
             except Exception as e:
                 print(f"Model {model} failed: {e}, trying next...")
@@ -290,7 +292,8 @@ Hard requirements:
             "preferences": preferences or [],
             "itinerary_text": itinerary_text,
             "weather_considered": weather_info is not None,
-            "attractions_included": len(attractions) if attractions else 0
+            "attractions_included": len(attractions) if attractions else 0,
+            "model_used": model_used
         }
     
     except Exception as e:
