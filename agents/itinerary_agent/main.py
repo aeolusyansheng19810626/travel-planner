@@ -49,7 +49,7 @@ async def call_itinerary_mcp(
                         "attractions": attractions or []
                     }
                 )
-                return json.loads(result[0].text)
+                return json.loads(result.content[0].text)
         except Exception as e:
             if attempt < 2:
                 print(f"[itinerary_agent] MCP attempt {attempt + 1} failed: {e}, retrying in {2 ** attempt}s...")

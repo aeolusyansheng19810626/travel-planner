@@ -45,7 +45,7 @@ async def call_attraction_mcp(
                         "language": language
                     }
                 )
-                return json.loads(result[0].text)
+                return json.loads(result.content[0].text)
         except Exception as e:
             if attempt < 2:
                 print(f"[attraction_agent] MCP attempt {attempt + 1} failed: {e}, retrying in {2 ** attempt}s...")

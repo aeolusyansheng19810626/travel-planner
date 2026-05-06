@@ -29,7 +29,7 @@ async def call_weather_mcp(city: str, days: int, language: str) -> Dict[str, Any
         result = await client.call_tool(
             "get_weather", {"city": city, "days": days, "language": language}
         )
-        return json.loads(result[0].text)
+        return json.loads(result.content[0].text)
 
 def get_demo_weather(city: str, days: int = 7, lang: str = "en") -> Dict[str, Any]:
     today = datetime.now()
@@ -96,7 +96,8 @@ async def execute_task(request: TaskRequest):
             else:
                 try:
                     result = await call_weather_mcp(city, days, lang)
-                except Exception:
+                except Exception as e:
+                    print(f"[weather_agent] MCP call failed, using demo fallback: {e}")
                     result = get_demo_weather(city, days, lang)
 
             return TaskResponse(status="success", result=result)
@@ -114,7 +115,8 @@ async def execute_task(request: TaskRequest):
             else:
                 try:
                     weather_info = await call_weather_mcp(city, days, lang)
-                except Exception:
+                except Exception as e:
+                    print(f"[weather_agent] MCP call failed, using demo fallback: {e}")
                     weather_info = get_demo_weather(city, days, lang)
 
             good_days = 0
