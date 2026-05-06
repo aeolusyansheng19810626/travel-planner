@@ -10,7 +10,7 @@ langchain-core==0.3.21
 langchain-groq==0.2.1
 
 # LLM & AI
-groq==0.11.0
+groq>=0.13.0
 
 # HTTP & API
 httpx>=0.28.1,<1.0
