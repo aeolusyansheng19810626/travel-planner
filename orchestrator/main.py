@@ -135,6 +135,7 @@ async def process_query(request: QueryRequest):
         
         # Format result
         result = {
+            "language": final_state.get("language", "en"),
             "destination": final_state["destination"],
             "days": final_state["days"],
             "preferences": final_state["preferences"],

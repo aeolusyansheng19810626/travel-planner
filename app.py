@@ -309,8 +309,19 @@ for message in st.session_state.messages:
                     with st.expander(f"🏛️ {t('attractions')}", expanded=True):
                         attractions = result["attractions"]
                         for attr in attractions[:5]:  # Show first 5
-                            st.write(f"**{attr.get('name', 'Unknown')}**")
-                            st.write(attr.get('description', 'N/A'))
+                            name = attr.get('name', 'Unknown')
+                            st.write(f"**{name}**")
+                            fallback_descriptions = {
+                                "zh": f"{name} 是 {result.get('destination', '当地')} 的热门景点。",
+                                "ja": f"{name} は {result.get('destination', '現地')} の人気観光スポットです。",
+                                "en": f"{name} is a popular attraction in {result.get('destination', 'the destination')}."
+                            }
+                            description = (
+                                attr.get('description')
+                                or attr.get('content')
+                                or fallback_descriptions.get(result.get("language", st.session_state.lang), fallback_descriptions["en"])
+                            )
+                            st.write(description)
                             st.divider()
                 
                 # Display itinerary

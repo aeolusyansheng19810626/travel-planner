@@ -188,6 +188,45 @@ Format the response as a structured itinerary for each day."""
         
         # Get language-specific prompts
         lang_prompts = prompts.get(language, prompts["en"])
+        output_rules = {
+            "zh": f"""
+
+输出要求：
+- 必须全程使用简体中文回答，不要切换成英文。
+- 必须包含第1天到第{days}天，不要提前结束。
+- 每天只使用四个时间段：上午、午餐、下午、晚上。
+- 每个时间段只写一句简短的话。
+- 不要使用 Markdown 表格或 HTML 标签。
+- 每句只写地点/活动，最多加一个实用提醒。
+- 不要写长描述、地址、价格区间、预订建议或多段小贴士。
+- 如果天气数据少于{days}天，仍然生成完整{days}天，并简单说明后续天气暂无。
+""",
+            "ja": f"""
+
+出力条件：
+- 必ず日本語で回答し、英語に切り替えないでください。
+- 1日目から{days}日目まで必ず含め、途中で終わらないでください。
+- 各日は午前、昼食、午後、夜の4枠だけにしてください。
+- 各時間帯は短い1文だけにしてください。
+- Markdownの表やHTMLタグは使わないでください。
+- 各文は場所/活動を中心にし、実用メモは最大1つだけにしてください。
+- 長い説明、住所、価格帯、予約案内、複数段落のヒントは不要です。
+- 天気データが{days}日分未満でも、全{days}日分を作成してください。
+""",
+            "en": f"""
+
+Hard requirements:
+- You must answer entirely in English.
+- You must include every day from Day 1 through Day {days}; do not stop early.
+- Keep each day concise; each time slot should be exactly one short sentence.
+- Use one clear section per day, labeled Day 1, Day 2, and so on.
+- Do not use Markdown tables or HTML tags.
+- For each day, use only these four time slots: Morning, Lunch, Afternoon, Evening.
+- Each time slot should mention the place/activity and one practical note at most.
+- Do not include long descriptions, addresses, price ranges, booking advice, or multi-paragraph tips.
+- If weather data has fewer entries than {days}, still create all {days} days and note that later weather is unavailable.
+"""
+        }
         
         # Build context for LLM
         context = lang_prompts["context_template"].format(city=city, days=days)
@@ -213,19 +252,7 @@ Format the response as a structured itinerary for each day."""
             context += "\n"
         
         context += lang_prompts["instructions"]
-        context += f"""
-
-Hard requirements:
-- You must include every day from Day 1 through Day {days}; do not stop early.
-- Keep each day concise; each time slot should be exactly one short sentence.
-- Use one clear section per day, labeled Day 1, Day 2, and so on.
-- Do not use Markdown tables or HTML tags.
-- For each day, use only these four time slots: Morning, Lunch, Afternoon, Evening.
-- Each time slot should mention the place/activity and one practical note at most.
-- Do not include long descriptions, addresses, price ranges, booking advice, or multi-paragraph tips.
-- Put transportation or restaurant names inside the same sentence only when useful.
-- If weather data has fewer entries than {days}, still create all {days} days and note that later weather is unavailable.
-"""
+        context += output_rules.get(language, output_rules["en"])
         
         # Call Groq API with fallback
         response = None

@@ -242,6 +242,10 @@ async def clean_attractions_with_llm(raw_results: List[Dict], city: str, lang: s
 
         data = json.loads(content)
         cleaned = data.get("attractions", [])
+        cleaned = [
+            c for c in cleaned
+            if c.get("name") and c.get("description")
+        ]
         
         # Merge url and score back if possible
         for c in cleaned:
@@ -250,6 +254,8 @@ async def clean_attractions_with_llm(raw_results: List[Dict], city: str, lang: s
                 if c_name in r.get("name", "").lower() or r.get("name", "").lower() in c_name:
                     if "url" in r: c["url"] = r["url"]
                     if "score" in r: c["score"] = r["score"]
+                    if not c.get("description") and r.get("description"):
+                        c["description"] = r["description"]
                     break
         
         return cleaned if cleaned else raw_results

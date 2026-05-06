@@ -47,6 +47,24 @@ def detect_language(text: str) -> str:
     # Default to English
     return "en"
 
+def infer_preferences(text: str) -> List[str]:
+    """Infer common travel preferences with simple keyword rules."""
+    lowered = text.lower()
+    preference_keywords = {
+        "romantic": ["romantic", "romance", "浪漫", "ロマンチック"],
+        "shopping": ["shopping", "购物", "買い物", "ショッピング"],
+        "food": ["food", "gourmet", "美食", "グルメ", "食べ物"],
+        "historical": ["history", "historical", "历史", "歷史", "歴史"],
+        "culture": ["culture", "cultural", "文化"],
+        "nature": ["nature", "自然"],
+        "nightlife": ["nightlife", "夜生活", "ナイトライフ"]
+    }
+    return [
+        preference
+        for preference, keywords in preference_keywords.items()
+        if any(keyword in lowered for keyword in keywords)
+    ]
+
 def get_msg(key: str, target_lang: str, **kwargs) -> str:
     """Get translated message"""
     msgs = {
@@ -207,6 +225,8 @@ def parse_query(state: TravelPlanState) -> TravelPlanState:
         preferences = parsed_data.get("preferences", [])
         if not isinstance(preferences, list):
             preferences = []
+        inferred_preferences = infer_preferences(original_query)
+        preferences = list(dict.fromkeys(preferences + inferred_preferences))
             
     except Exception as e:
         # Stop and return an error if parsing strictly fails, rather than silently defaulting to Tokyo
