@@ -39,12 +39,13 @@ async def call_agent(url: str, skill: str, params: Dict[str, Any]) -> Dict[str, 
 
 def detect_language(text: str) -> str:
     """Detect language from text (simple heuristic)"""
+    # Check Japanese-specific scripts first (Hiragana, Katakana)
+    # Must come before CJK check because kanji appears in both Japanese and Chinese
+    if re.search(r'[\u3040-\u309f\u30a0-\u30ff]', text):
+        return "ja"
     # Check for Chinese characters
     if re.search(r'[\u4e00-\u9fff]', text):
         return "zh"
-    # Check for Japanese characters (Hiragana, Katakana, Kanji)
-    if re.search(r'[\u3040-\u309f\u30a0-\u30ff]', text):
-        return "ja"
     # Default to English
     return "en"
 
