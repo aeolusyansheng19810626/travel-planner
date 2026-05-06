@@ -1,3 +1,12 @@
+---
+title: Travel Planner
+emoji: ✈️
+colorFrom: indigo
+colorTo: purple
+sdk: docker
+pinned: false
+---
+
 # ✈️ Travel Planner
 
 An AI-powered travel planning system using multi-agent architecture with LangGraph orchestration and A2A (Agent-to-Agent) protocol.
