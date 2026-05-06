@@ -15,7 +15,14 @@ app = FastAPI(title="Itinerary Agent", version="1.0.0")
 # Demo mode check
 DEMO_MODE = os.getenv("DEMO_MODE", "false").lower() == "true"
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+# Models fallback list
+MODELS = [
+    "openai/gpt-oss-120b",
+    "openai/gpt-oss-20b", 
+    "qwen/qwen3-32b",
+    "meta-llama/llama-4-scout-17b-16e-instruct",
+    "llama-3.1-8b-instant"
+]
 
 # Initialize Groq client
 groq_client = None
@@ -207,23 +214,33 @@ Format the response as a structured itinerary for each day."""
         
         context += lang_prompts["instructions"]
         
-        # Call Groq API
-        response = groq_client.chat.completions.create(
-            model=GROQ_MODEL,
-            messages=[
-                {
-                    "role": "system",
-                    "content": lang_prompts["system"]
-                },
-                {
-                    "role": "user",
-                    "content": context
-                }
-            ],
-            temperature=0.7,
-            max_tokens=2000
-        )
-        
+        # Call Groq API with fallback
+        response = None
+        for model in MODELS:
+            try:
+                response = groq_client.chat.completions.create(
+                    model=model,
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": lang_prompts["system"]
+                        },
+                        {
+                            "role": "user",
+                            "content": context
+                        }
+                    ],
+                    temperature=0.7,
+                    max_tokens=2000
+                )
+                break
+            except Exception as e:
+                print(f"Model {model} failed: {e}, trying next...")
+                continue
+                
+        if not response:
+            raise Exception("All models failed")
+            
         itinerary_text = response.choices[0].message.content
         
         return {
@@ -254,7 +271,7 @@ async def health_check():
         "agent": "itinerary_agent",
         "groq_connected": groq_client is not None,
         "demo_mode": DEMO_MODE,
-        "model": GROQ_MODEL
+        "models": MODELS
     }
 
 @app.post("/tasks", response_model=TaskResponse)
