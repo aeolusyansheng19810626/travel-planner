@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 from fastmcp import FastMCP
-from groq import Groq
+from groq import AsyncGroq
 
 load_dotenv(Path(__file__).parent.parent / ".env")
 
@@ -18,7 +18,7 @@ MODELS = [
     "llama-3.1-8b-instant"
 ]
 
-groq_client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
+groq_client = AsyncGroq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
 
 def build_language_rules(language: str, days: int) -> str:
     if language == "zh":
@@ -105,7 +105,7 @@ async def generate_itinerary(
     errors = []
     for model in MODELS:
         try:
-            response = groq_client.chat.completions.create(
+            response = await groq_client.chat.completions.create(
                 model=model,
                 messages=[
                     {"role": "system", "content": system},

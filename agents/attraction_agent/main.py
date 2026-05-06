@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 import json
 import os
+import asyncio
 from pathlib import Path
 from dotenv import load_dotenv
 from fastmcp import Client
@@ -32,17 +33,25 @@ async def call_attraction_mcp(
     max_results: int,
     language: str
 ) -> Dict[str, Any]:
-    async with Client(ATTRACTION_MCP_URL) as client:
-        result = await client.call_tool(
-            "search_attractions",
-            {
-                "city": city,
-                "preferences": preferences or [],
-                "max_results": max_results,
-                "language": language
-            }
-        )
-        return json.loads(result[0].text)
+    for attempt in range(3):
+        try:
+            async with Client(ATTRACTION_MCP_URL) as client:
+                result = await client.call_tool(
+                    "search_attractions",
+                    {
+                        "city": city,
+                        "preferences": preferences or [],
+                        "max_results": max_results,
+                        "language": language
+                    }
+                )
+                return json.loads(result[0].text)
+        except Exception as e:
+            if attempt < 2:
+                print(f"[attraction_agent] MCP attempt {attempt + 1} failed: {e}, retrying in {2 ** attempt}s...")
+                await asyncio.sleep(2 ** attempt)
+            else:
+                raise
 
 def get_demo_attractions(city: str, preferences: Optional[List[str]] = None) -> List[Dict[str, Any]]:
     attractions_db = {
@@ -214,7 +223,8 @@ async def execute_task(request: TaskRequest):
                     mcp_result = await call_attraction_mcp(city, preferences, max_results, lang)
                     attractions = mcp_result.get("attractions", [])
                     model_used = mcp_result.get("model_used")
-                except Exception:
+                except Exception as e:
+                    print(f"[attraction_agent] MCP call failed, using demo fallback: {e}")
                     attractions = get_demo_attractions(city, preferences)
                     model_used = None
 
@@ -259,7 +269,8 @@ async def execute_task(request: TaskRequest):
                 try:
                     mcp_result = await call_attraction_mcp(city, preferences, days * 3, "en")
                     all_attractions = mcp_result.get("attractions", [])
-                except Exception:
+                except Exception as e:
+                    print(f"[attraction_agent] MCP call failed, using demo fallback: {e}")
                     all_attractions = get_demo_attractions(city, preferences)
 
             attractions_per_day = max(2, len(all_attractions) // days)

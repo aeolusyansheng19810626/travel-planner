@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
 import json
 import os
+import asyncio
 from pathlib import Path
 from dotenv import load_dotenv
 from fastmcp import Client
@@ -34,19 +35,27 @@ async def call_itinerary_mcp(
     weather_info: Optional[Dict],
     attractions: Optional[List[Dict]]
 ) -> Dict[str, Any]:
-    async with Client(LLM_MCP_URL) as client:
-        result = await client.call_tool(
-            "generate_itinerary",
-            {
-                "city": city,
-                "days": days,
-                "language": language,
-                "preferences": preferences or [],
-                "weather_info": weather_info,
-                "attractions": attractions or []
-            }
-        )
-        return json.loads(result[0].text)
+    for attempt in range(3):
+        try:
+            async with Client(LLM_MCP_URL) as client:
+                result = await client.call_tool(
+                    "generate_itinerary",
+                    {
+                        "city": city,
+                        "days": days,
+                        "language": language,
+                        "preferences": preferences or [],
+                        "weather_info": weather_info,
+                        "attractions": attractions or []
+                    }
+                )
+                return json.loads(result[0].text)
+        except Exception as e:
+            if attempt < 2:
+                print(f"[itinerary_agent] MCP attempt {attempt + 1} failed: {e}, retrying in {2 ** attempt}s...")
+                await asyncio.sleep(2 ** attempt)
+            else:
+                raise
 
 def get_demo_itinerary(city: str, days: int, weather_info: Optional[Dict] = None, attractions: Optional[List[Dict]] = None) -> Dict[str, Any]:
     daily_plans = []
@@ -157,7 +166,8 @@ async def execute_task(request: TaskRequest):
                     result = await call_itinerary_mcp(
                         city, days, language, preferences, weather_info, attractions
                     )
-                except Exception:
+                except Exception as e:
+                    print(f"[itinerary_agent] MCP call failed, using demo fallback: {e}")
                     result = get_demo_itinerary(city, days, weather_info, attractions)
 
             return TaskResponse(status="success", result=result)

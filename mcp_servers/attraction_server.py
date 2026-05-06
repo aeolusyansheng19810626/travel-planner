@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 from fastmcp import FastMCP
-from groq import Groq
+from groq import AsyncGroq
 from tavily import TavilyClient
 
 load_dotenv(Path(__file__).parent.parent / ".env")
@@ -22,7 +22,7 @@ MODELS = [
 ]
 
 tavily_client = TavilyClient(api_key=TAVILY_API_KEY) if TAVILY_API_KEY else None
-groq_client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
+groq_client = AsyncGroq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
 
 async def clean_attractions_with_llm(raw_results: List[Dict[str, Any]], city: str, language: str) -> Tuple[List[Dict[str, Any]], Optional[str]]:
     if not groq_client or not raw_results:
@@ -54,7 +54,7 @@ Return only JSON:
     errors = []
     for model in MODELS:
         try:
-            response = groq_client.chat.completions.create(
+            response = await groq_client.chat.completions.create(
                 model=model,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.3,
