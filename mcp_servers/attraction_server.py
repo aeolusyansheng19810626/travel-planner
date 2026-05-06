@@ -14,11 +14,11 @@ mcp = FastMCP(name="Attraction MCP Server")
 TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 MODELS = [
-    "openai/gpt-oss-120b",
-    "openai/gpt-oss-20b",
-    "qwen/qwen3-32b",
     "meta-llama/llama-4-scout-17b-16e-instruct",
-    "llama-3.1-8b-instant"
+    "llama-3.1-8b-instant",
+    "qwen/qwen3-32b",
+    "openai/gpt-oss-20b",
+    "openai/gpt-oss-120b"
 ]
 
 tavily_client = TavilyClient(api_key=TAVILY_API_KEY) if TAVILY_API_KEY else None

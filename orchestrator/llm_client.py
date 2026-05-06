@@ -7,11 +7,11 @@ from typing import Optional, List, Dict, Any
 
 # Model fallback list (from best to fastest)
 MODELS = [
-    "openai/gpt-oss-120b",
-    "openai/gpt-oss-20b", 
-    "qwen/qwen3-32b",
     "meta-llama/llama-4-scout-17b-16e-instruct",
-    "llama-3.1-8b-instant"
+    "llama-3.1-8b-instant",
+    "qwen/qwen3-32b",
+    "openai/gpt-oss-20b",
+    "openai/gpt-oss-120b"
 ]
 
 class GroqClientWithFallback:

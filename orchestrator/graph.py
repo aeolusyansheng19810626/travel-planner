@@ -27,7 +27,7 @@ ITINERARY_AGENT_URL = "http://localhost:8003"
 async def call_agent(url: str, skill: str, params: Dict[str, Any]) -> Dict[str, Any]:
     """Call an agent via A2A protocol"""
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.post(
                 f"{url}/tasks",
                 json={"skill": skill, "params": params}

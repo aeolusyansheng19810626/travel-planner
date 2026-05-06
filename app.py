@@ -179,7 +179,7 @@ def send_query(query: str):
         response = requests.post(
             f"{ORCHESTRATOR_URL}/query",
             json={"query": query},
-            timeout=60
+            timeout=120
         )
         return response.json()
     except Exception as e:
