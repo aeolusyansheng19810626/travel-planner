@@ -11,6 +11,19 @@ if not exist .env (
     exit /b 1
 )
 
+REM Start MCP Servers first
+echo Starting Weather MCP Server on port 8010...
+start "Weather MCP Server" cmd /k "python mcp_servers\weather_server.py"
+timeout /t 2 /nobreak >nul
+
+echo Starting Attraction MCP Server on port 8011...
+start "Attraction MCP Server" cmd /k "python mcp_servers\attraction_server.py"
+timeout /t 2 /nobreak >nul
+
+echo Starting LLM MCP Server on port 8012...
+start "LLM MCP Server" cmd /k "python mcp_servers\llm_server.py"
+timeout /t 3 /nobreak >nul
+
 REM Start agents
 echo Starting Weather Agent on port 8001...
 start "Weather Agent" cmd /k "cd agents\weather_agent && uvicorn main:app --host 0.0.0.0 --port 8001"
@@ -34,5 +47,3 @@ echo Starting Streamlit UI on port 7860...
 streamlit run app.py --server.port=7860 --server.address=0.0.0.0
 
 REM Made with Bob
-
-@REM Made with Bob

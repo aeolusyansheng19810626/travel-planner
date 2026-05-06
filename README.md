@@ -9,13 +9,14 @@ pinned: false
 
 # ✈️ 旅行规划助手
 
-基于多智能体架构的AI旅行规划系统，使用LangGraph编排和A2A（Agent-to-Agent）协议。
+基于多智能体架构的AI旅行规划系统，使用LangGraph编排、A2A（Agent-to-Agent）协议和MCP（Model Context Protocol）。
 
 ## 🌟 特性
 
 - **多智能体系统**：天气、景点和行程智能体协同工作
 - **LangGraph编排**：使用状态机进行智能工作流管理
 - **A2A协议**：标准化的智能体通信和发现机制
+- **MCP协议**：通过FastMCP将外部API封装为独立工具服务
 - **自然语言处理**：由大语言模型驱动
 - **实时天气**：集成Open-Meteo API（无需API密钥）
 - **智能搜索**：使用Tavily API进行景点推荐
@@ -33,13 +34,18 @@ pinned: false
 │           Orchestrator (LangGraph + FastAPI)                │
 │                        端口 8000                            │
 └──────┬──────────────────┬──────────────────┬────────────────┘
-       │                  │                  │
+       │ A2A              │ A2A              │ A2A
 ┌──────▼──────┐  ┌────────▼────────┐  ┌──────▼──────────┐
 │   天气      │  │    景点         │  │    行程         │
 │   智能体    │  │   智能体        │  │   智能体        │
 │  端口 8001  │  │  端口 8002      │  │  端口 8003      │
+└──────┬──────┘  └────────┬────────┘  └──────┬──────────┘
+       │ MCP              │ MCP              │ MCP
+┌──────▼──────┐  ┌────────▼────────┐  ┌──────▼──────────┐
+│ Weather MCP │  │ Attraction MCP  │  │    LLM MCP      │
+│  端口 8010  │  │   端口 8011     │  │   端口 8012     │
 │             │  │                 │  │                 │
-│ Open-Meteo  │  │  Tavily API     │  │   LLM           │
+│ Open-Meteo  │  │  Tavily API     │  │   Groq LLM      │
 └─────────────┘  └─────────────────┘  └─────────────────┘
 ```
 
@@ -161,9 +167,10 @@ docker run -p 7860:7860 \
 |------|------|------|
 | 编排 | LangGraph | 工作流状态管理 |
 | 智能体 | FastAPI | HTTP服务 |
-| 通信 | A2A协议 | 智能体发现与交互 |
+| 智能体通信 | A2A协议 | 智能体发现与交互 |
+| 工具服务 | FastMCP | 将外部API封装为MCP工具 |
 | 界面 | Streamlit | 用户界面 |
-| LLM | 大语言模型 | 自然语言处理 |
+| LLM | Groq | 自然语言处理与行程生成 |
 | 天气 | Open-Meteo | 天气数据（免费，无需密钥）|
 | 搜索 | Tavily | 景点搜索 |
 | 部署 | Docker + Supervisor | 进程管理 |
@@ -179,22 +186,28 @@ travel-planner/
 ├── supervisord.conf               # 进程管理
 ├── start.sh / start.bat           # 本地启动脚本
 │
+├── mcp_servers/                   # FastMCP工具服务
+│   ├── weather_server.py          # Open-Meteo封装（端口8010）
+│   ├── attraction_server.py       # Tavily封装（端口8011）
+│   └── llm_server.py              # Groq封装（端口8012）
+│
 ├── orchestrator/
 │   ├── main.py                    # FastAPI服务
 │   ├── graph.py                   # LangGraph工作流
+│   ├── llm_client.py              # Groq客户端（含模型降级）
 │   └── agent_card.json            # A2A智能体卡片
 │
 └── agents/
     ├── weather_agent/
-    │   ├── main.py                # 天气服务
+    │   ├── main.py                # 天气智能体（MCP客户端）
     │   └── agent_card.json        # 智能体元数据
     │
     ├── attraction_agent/
-    │   ├── main.py                # 景点服务
+    │   ├── main.py                # 景点智能体（MCP客户端）
     │   └── agent_card.json        # 智能体元数据
     │
     └── itinerary_agent/
-        ├── main.py                # 行程服务
+        ├── main.py                # 行程智能体（MCP客户端）
         └── agent_card.json        # 智能体元数据
 ```
 
@@ -218,6 +231,9 @@ DEMO_MODE=false                    # 设为"true"可在无API密钥时演示
 - **8001**: 天气智能体
 - **8002**: 景点智能体
 - **8003**: 行程智能体
+- **8010**: Weather MCP Server（Open-Meteo）
+- **8011**: Attraction MCP Server（Tavily）
+- **8012**: LLM MCP Server（Groq）
 
 ## 🧪 测试
 
@@ -249,10 +265,10 @@ curl -X POST http://localhost:8000/query \
 
 1. **用户输入**：通过Streamlit界面输入自然语言查询
 2. **查询解析**：Orchestrator使用LangGraph解析目的地、天数和偏好
-3. **并行调用**：
-   - 天气智能体获取天气预报
-   - 景点智能体搜索推荐景点
-4. **行程生成**：行程智能体基于天气和景点数据生成详细行程
+3. **顺序调用**（LangGraph节点依次执行）：
+   - 天气智能体通过MCP调用Weather Server获取天气预报
+   - 景点智能体通过MCP调用Attraction Server搜索推荐景点
+4. **行程生成**：行程智能体通过MCP调用LLM Server，基于天气和景点数据生成详细行程
 5. **结果展示**：在界面上展示完整的旅行计划
 
 ## 🤝 贡献

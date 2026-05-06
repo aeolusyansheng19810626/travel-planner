@@ -4,11 +4,10 @@
 
 set -e
 
-# Colors for output
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
 echo -e "${GREEN}=== Travel Planner - Starting Services ===${NC}"
 
@@ -20,10 +19,8 @@ if [ ! -f .env ]; then
     exit 1
 fi
 
-# Load environment variables
 source .env
 
-# Check API keys
 if [ -z "$GROQ_API_KEY" ] || [ "$GROQ_API_KEY" = "your_groq_api_key_here" ]; then
     echo -e "${RED}Error: GROQ_API_KEY not set in .env file${NC}"
     exit 1
@@ -34,26 +31,32 @@ if [ -z "$TAVILY_API_KEY" ] || [ "$TAVILY_API_KEY" = "your_tavily_api_key_here" 
     exit 1
 fi
 
-# Function to start a service
 start_service() {
     local name=$1
     local command=$2
     local port=$3
-    
     echo -e "${GREEN}Starting $name on port $port...${NC}"
-    $command &
+    eval "$command" &
     sleep 2
 }
 
+# Start MCP Servers first
+start_service "Weather MCP Server"    "python mcp_servers/weather_server.py"    8010
+start_service "Attraction MCP Server" "python mcp_servers/attraction_server.py" 8011
+start_service "LLM MCP Server"        "python mcp_servers/llm_server.py"        8012
+
+# Wait a bit longer for MCP servers to be ready
+sleep 1
+
 # Start agents
-start_service "Weather Agent" "cd agents/weather_agent && uvicorn main:app --host 0.0.0.0 --port 8001" 8001
+start_service "Weather Agent"    "cd agents/weather_agent    && uvicorn main:app --host 0.0.0.0 --port 8001" 8001
 start_service "Attraction Agent" "cd agents/attraction_agent && uvicorn main:app --host 0.0.0.0 --port 8002" 8002
-start_service "Itinerary Agent" "cd agents/itinerary_agent && uvicorn main:app --host 0.0.0.0 --port 8003" 8003
+start_service "Itinerary Agent"  "cd agents/itinerary_agent  && uvicorn main:app --host 0.0.0.0 --port 8003" 8003
 
 # Start orchestrator
 start_service "Orchestrator" "cd orchestrator && uvicorn main:app --host 0.0.0.0 --port 8000" 8000
 
-# Start Streamlit UI
+# Start Streamlit UI (foreground)
 echo -e "${GREEN}Starting Streamlit UI on port 7860...${NC}"
 streamlit run app.py --server.port=7860 --server.address=0.0.0.0
 
