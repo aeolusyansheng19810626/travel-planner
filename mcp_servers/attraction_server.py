@@ -92,7 +92,7 @@ Return only JSON:
 
     return cleaned, used_model
 
-@mcp.tool
+@mcp.tool()
 async def search_attractions(
     city: str,
     preferences: Optional[List[str]] = None,

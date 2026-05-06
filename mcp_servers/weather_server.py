@@ -65,7 +65,7 @@ async def get_coordinates(city: str) -> Dict[str, Any]:
     geocoding_cache[city] = coords
     return coords
 
-@mcp.tool
+@mcp.tool()
 async def get_weather(city: str, days: int = 7, language: str = "en") -> Dict[str, Any]:
     """Get a daily weather forecast for a city using Open-Meteo."""
     coords = await get_coordinates(city)

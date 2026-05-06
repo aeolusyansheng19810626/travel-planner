@@ -52,7 +52,7 @@ Hard requirements:
 - Do not include long descriptions, addresses, price ranges, booking advice, or multi-paragraph tips.
 """
 
-@mcp.tool
+@mcp.tool()
 async def generate_itinerary(
     city: str,
     days: int = 3,
