@@ -299,7 +299,8 @@ for message in st.session_state.messages:
                         weather = result["weather"]
                         st.write(f"**{weather.get('city', 'N/A')}, {weather.get('country', 'N/A')}**")
                         if weather.get("forecast"):
-                            for day in weather["forecast"][:3]:  # Show first 3 days
+                            display_days = result.get("days", 3)
+                            for day in weather["forecast"][:display_days]:
                                 st.write(f"**{day.get('date', 'N/A')}:** {day.get('weather', 'N/A')}, "
                                        f"{day.get('temperature_max', 'N/A')}°C / {day.get('temperature_min', 'N/A')}°C")
                 

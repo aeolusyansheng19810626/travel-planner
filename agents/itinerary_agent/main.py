@@ -213,6 +213,19 @@ Format the response as a structured itinerary for each day."""
             context += "\n"
         
         context += lang_prompts["instructions"]
+        context += f"""
+
+Hard requirements:
+- You must include every day from Day 1 through Day {days}; do not stop early.
+- Keep each day concise; each time slot should be exactly one short sentence.
+- Use one clear section per day, labeled Day 1, Day 2, and so on.
+- Do not use Markdown tables or HTML tags.
+- For each day, use only these four time slots: Morning, Lunch, Afternoon, Evening.
+- Each time slot should mention the place/activity and one practical note at most.
+- Do not include long descriptions, addresses, price ranges, booking advice, or multi-paragraph tips.
+- Put transportation or restaurant names inside the same sentence only when useful.
+- If weather data has fewer entries than {days}, still create all {days} days and note that later weather is unavailable.
+"""
         
         # Call Groq API with fallback
         response = None
@@ -231,7 +244,7 @@ Format the response as a structured itinerary for each day."""
                         }
                     ],
                     temperature=0.7,
-                    max_tokens=2000
+                    max_tokens=3500
                 )
                 break
             except Exception as e:
