@@ -45,7 +45,8 @@ pinned: false
 │ Weather MCP │  │ Attraction MCP  │  │    LLM MCP      │
 │  端口 8010  │  │   端口 8011     │  │   端口 8012     │
 │             │  │                 │  │                 │
-│ Open-Meteo  │  │  Tavily API     │  │   Groq LLM      │
+│ Open-Meteo  │  │ Tavily + Groq   │  │   Groq LLM      │
+│             │  │ (搜索+LLM清洗)  │  │                 │
 └─────────────┘  └─────────────────┘  └─────────────────┘
 ```
 
@@ -132,11 +133,19 @@ docker run -p 7860:7860 \
 
 ### 示例查询
 
+**中文**
 - "帮我规划东京3天旅行"
 - "大阪2天，喜欢历史和美食"
-- "京都1天，天气好吗？"
-- "巴黎5天浪漫之旅"
-- "纽约4天购物和美食"
+- "韩国首尔1天，喜欢著名景点"
+
+**English**
+- "Plan a 3-day trip to Paris with a focus on culture"
+- "New York 4 days, shopping and food"
+- "Rome 3-day historical tour"
+
+**日本語**
+- "京都1日、天気はどう？"
+- "東京2泊3日の旅行を計画して"
 
 ### API端点
 
