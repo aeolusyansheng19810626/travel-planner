@@ -36,13 +36,19 @@ async def clean_attractions_with_llm(raw_results: List[Dict[str, Any]], city: st
 
     prompt = f"""
 You are a travel assistant. Here are raw search results for attractions in {city}.
-Extract 5-8 real tourist attractions. For each attraction, provide a clean short name
-and one concise description in {lang_name}.
+Extract 5-8 real tourist attractions.
+
+CRITICAL: The JSON keys MUST always be in English: "attractions", "name", "description".
+Only the values should be in {lang_name}.
+
+For each attraction provide:
+- "name": the attraction name (in {lang_name} or romanized)
+- "description": one concise sentence in {lang_name}
 
 Raw data:
 {json.dumps(raw_results, ensure_ascii=False)}
 
-Return only JSON:
+Return ONLY this exact JSON structure (keys in English, values in {lang_name}):
 {{
   "attractions": [
     {{"name": "...", "description": "..."}}
@@ -74,9 +80,15 @@ Return only JSON:
         print(f"All attraction cleanup models failed: {'; '.join(errors)}")
         return raw_results, None
 
-    data = json.loads(content)
+    try:
+        data = json.loads(content)
+    except json.JSONDecodeError as e:
+        print(f"[attraction_server] JSON parse failed ({e}). Content: {content[:300]}")
+        return raw_results, used_model
+
     cleaned = [item for item in data.get("attractions", []) if item.get("name") and item.get("description")]
     if not cleaned:
+        print(f"[attraction_server] No valid cleaned attractions. Keys returned: {list(data.keys())}, data: {str(data)[:300]}")
         return raw_results, used_model
 
     for item in cleaned:
