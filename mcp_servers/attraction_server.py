@@ -36,25 +36,27 @@ async def clean_attractions_with_llm(raw_results: List[Dict[str, Any]], city: st
 
     # Truncate descriptions to prevent oversized prompts that confuse the LLM
     truncated_results = [
-        {**r, "description": r.get("description", "")[:400]}
+        {**r, "description": r.get("description", "")[:800]}
         for r in raw_results
     ]
 
     prompt = f"""
-You are a travel assistant. Here are raw search results for attractions in {city}.
-Extract 5-8 real tourist attractions from this data.
+You are a travel assistant. Extract 5-8 real tourist attractions in {city} from the raw search results below.
 
-CRITICAL RULES:
-1. The JSON keys MUST always be in English: "attractions", "name", "description". NEVER translate keys.
-2. Only the values (attraction names and descriptions) should be in {lang_name}.
-3. Extract REAL tourist attraction names (e.g. "Gyeongbokgung Palace", "Myeongdong"), NOT blog titles or article headings.
-4. If the raw data is a blog/article, look for specific place names mentioned inside it.
-5. Every "name" and "description" field MUST be non-empty strings.
+RULES:
+1. JSON keys MUST be in English: "attractions", "name", "description". NEVER translate keys.
+2. Values must be in {lang_name}.
+3. Extract individual PLACE names (temples, museums, markets, streets, parks), NOT article/blog titles.
+4. Raw data may be blog articles with numbered lists — scan for specific place names inside (e.g. "1. Gyeongbokgung Palace", "2. Myeongdong").
+5. Every "name" and "description" MUST be a non-empty string.
+
+Example output for Paris (English keys, {lang_name} values):
+{{"attractions":[{{"name":"Eiffel Tower","description":"A must-see iron tower and symbol of Paris"}},{{"name":"Louvre Museum","description":"World's largest art museum housing the Mona Lisa"}}]}}
 
 Raw data:
 {json.dumps(truncated_results, ensure_ascii=False)}
 
-Return ONLY this exact JSON structure (keys in English, values in {lang_name}):
+Return ONLY valid JSON (keys in English, values in {lang_name}):
 {{
   "attractions": [
     {{"name": "...", "description": "..."}}
