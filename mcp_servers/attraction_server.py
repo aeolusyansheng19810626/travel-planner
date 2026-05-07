@@ -34,6 +34,12 @@ async def clean_attractions_with_llm(raw_results: List[Dict[str, Any]], city: st
     elif language == "ja":
         lang_name = "Japanese"
 
+    lang_instructions = {
+        "zh": "请用中文回答。景点名称和描述都必须用中文，不得使用英文。",
+        "ja": "日本語で回答してください。観光地の名前と説明はすべて日本語で書いてください。英語は使わないでください。",
+    }
+    lang_instruction = lang_instructions.get(language, "Answer in English. All attraction names and descriptions must be in English.")
+
     # Truncate descriptions to prevent oversized prompts that confuse the LLM
     truncated_results = [
         {**r, "description": r.get("description", "")[:800]}
@@ -41,11 +47,13 @@ async def clean_attractions_with_llm(raw_results: List[Dict[str, Any]], city: st
     ]
 
     prompt = f"""
+{lang_instruction}
+
 You are a travel assistant. Extract 5-8 real tourist attractions in {city} from the raw search results below.
 
 RULES:
 1. JSON keys MUST be in English: "attractions", "name", "description". NEVER translate keys.
-2. Values must be in {lang_name}.
+2. Values (attraction names and descriptions) MUST be in {lang_name}. Do NOT use English for values.
 3. Extract individual PLACE names (temples, museums, markets, streets, parks), NOT article/blog titles.
 4. Raw data may be blog articles with numbered lists — scan for specific place names inside (e.g. "1. Gyeongbokgung Palace", "2. Myeongdong").
 5. Every "name" and "description" MUST be a non-empty string.
