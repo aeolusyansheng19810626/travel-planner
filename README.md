@@ -273,12 +273,33 @@ curl -X POST http://localhost:8000/query \
 ## 🎯 工作流程
 
 1. **用户输入**：通过Streamlit界面输入自然语言查询
-2. **查询解析**：Orchestrator使用LangGraph解析目的地、天数和偏好
+2. **查询解析**：Orchestrator使用LangGraph解析目的地、天数、偏好和语言
 3. **顺序调用**（LangGraph节点依次执行）：
    - 天气智能体通过MCP调用Weather Server获取天气预报
-   - 景点智能体通过MCP调用Attraction Server搜索推荐景点
+   - 景点智能体通过MCP调用Attraction Server搜索推荐景点，并用Groq LLM清洗结果
 4. **行程生成**：行程智能体通过MCP调用LLM Server，基于天气和景点数据生成详细行程
-5. **结果展示**：在界面上展示完整的旅行计划
+5. **结果展示**：在界面上展示完整的旅行计划（支持中文/英文/日文）
+
+## 🔌 分层设计：为什么用MCP？
+
+本项目严格遵循三层分离架构，**智能体（Agent）不直接调用任何外部API**：
+
+```
+Orchestrator
+    ↓ A2A协议（HTTP POST /tasks）
+Agent（FastAPI）          ← 只负责任务调度，不持有API密钥
+    ↓ MCP协议（FastMCP Client）
+MCP Server（FastMCP）     ← 封装外部API，持有密钥，暴露为标准工具
+    ↓ 直接HTTP调用
+外部API（Open-Meteo / Tavily / Groq）
+```
+
+**这样设计的好处：**
+
+- **解耦**：替换底层数据源（如把Tavily换成别的搜索API）只需修改MCP Server，Agent代码无需改动
+- **复用**：同一个MCP Server可以被多个Agent或其他系统调用
+- **安全**：API密钥集中在MCP Server层，Agent本身无状态、不持有任何凭证
+- **标准化**：MCP是开放协议，MCP Server可独立部署、测试和替换
 
 ## 🤝 贡献
 
