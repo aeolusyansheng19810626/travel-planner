@@ -156,34 +156,163 @@ export function adaptItinerary(raw: ItineraryRaw | null, days: number, startDate
     });
   }
 
-  // fallback: itinerary_text → split by day markers
+  // fallback: itinerary_text → multi-language day/slot parser
   if (raw.itinerary_text) {
-    const text = raw.itinerary_text;
-    const lines = text.split('\n').filter((l) => l.trim());
-    const result: ItineraryDay[] = [];
-    let cur: ItineraryDay | null = null;
-    for (const line of lines) {
-      const dayMatch = line.match(/^[#*\s]*[Dd]ay\s*(\d+)[:\s]*(.*)/);
-      if (dayMatch) {
-        if (cur) result.push(cur);
-        const dayNum = parseInt(dayMatch[1]);
-        const dateStr = offsetDate(startDate, dayNum - 1);
-        const { date, day } = formatDate(dateStr, lang);
-        cur = { day: dayNum, date: `${date} ${day}`, title: dayMatch[2]?.trim() || `Day ${dayNum}`, items: [] };
-      } else if (cur && line.trim()) {
-        const timeMatch = line.match(/^(\d{1,2}:\d{2})\s*[-–]\s*(.+)/);
-        if (timeMatch) {
-          cur.items.push({ time: timeMatch[1], icon: guessIcon(timeMatch[2]), place: timeMatch[2].trim(), note: '' });
-        } else {
-          cur.items.push({ time: '', icon: '📍', place: line.trim(), note: '' });
-        }
-      }
-    }
-    if (cur) result.push(cur);
-    return result.slice(0, days);
+    return parseItineraryText(raw.itinerary_text, days, startDate, lang);
   }
 
   return [];
+}
+
+// Chinese ordinal number words → Arabic
+const ZH_NUMS: Record<string, number> = {
+  '一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9,'十':10,
+  '十一':11,'十二':12,'十三':13,'十四':14,
+};
+
+function zhWordToNum(s: string): number | null {
+  // handles "第三天" → 3, "第10天" → 10
+  const arabic = s.match(/\d+/);
+  if (arabic) return parseInt(arabic[0]);
+  for (const [w, n] of Object.entries(ZH_NUMS)) {
+    if (s.includes(w)) return n;
+  }
+  return null;
+}
+
+// Named time slots → approximate 24h time strings
+const SLOT_TIMES: Record<string, string> = {
+  // Chinese
+  '上午': '09:00', '早上': '08:30', '早晨': '08:30',
+  '午餐': '12:00', '中午': '12:00', '午饭': '12:00',
+  '下午': '14:00', '傍晚': '17:00',
+  '晚上': '18:30', '晚餐': '18:30', '夜晚': '20:00',
+  // Japanese
+  '午前': '09:00', '朝': '08:30',
+  '昼食': '12:00', '昼': '12:00',
+  '午後': '14:00',
+  '夜': '18:30', '夕食': '18:30', '夕方': '17:00',
+  // English
+  'morning': '09:00', 'breakfast': '08:30',
+  'lunch': '12:00', 'noon': '12:00', 'midday': '12:00',
+  'afternoon': '14:00',
+  'evening': '18:30', 'dinner': '18:30', 'night': '20:00',
+};
+
+function parseSlotTime(label: string): string {
+  const lower = label.toLowerCase().trim();
+  for (const [key, time] of Object.entries(SLOT_TIMES)) {
+    if (lower.startsWith(key.toLowerCase()) || lower === key.toLowerCase()) return time;
+  }
+  return '';
+}
+
+function isDayHeader(line: string): { dayNum: number; title: string } | null {
+  // English: "Day 1:", "Day 1 —", "**Day 1**", "### Day 1"
+  const enMatch = line.match(/^[#*\s]*[Dd]ay\s*(\d+)[:\s\-—]*(.*)/);
+  if (enMatch) return { dayNum: parseInt(enMatch[1]), title: enMatch[2].trim() };
+
+  // Chinese: "第一天：", "第1天：", "**第二天**"
+  const zhMatch = line.match(/^[#*\s]*第([一二三四五六七八九十\d]+)天[：:：\s\-—]*(.*)/);
+  if (zhMatch) {
+    const n = zhWordToNum(zhMatch[1]);
+    if (n) return { dayNum: n, title: zhMatch[2].trim() };
+  }
+
+  // Japanese: "1日目", "第1日"
+  const jaMatch = line.match(/^[#*\s]*(?:第)?(\d+)日目?[：:：\s\-—]*(.*)/);
+  if (jaMatch) return { dayNum: parseInt(jaMatch[1]), title: jaMatch[2].trim() };
+
+  return null;
+}
+
+function isTimeSlotLine(line: string): { time: string; rest: string } | null {
+  // Numeric time: "08:30 — 浅草寺", "08:30 - ..."
+  const numeric = line.match(/^(\d{1,2}:\d{2})\s*[-–—]\s*(.*)/);
+  if (numeric) return { time: numeric[1], rest: numeric[2].trim() };
+
+  // Named slot: "上午：", "Lunch:", "午前："
+  const namedSlot = line.match(/^([^\d：:：]{1,8})[：:：]\s*(.*)/);
+  if (namedSlot) {
+    const t = parseSlotTime(namedSlot[1]);
+    if (t) return { time: t, rest: namedSlot[2].trim() };
+  }
+
+  // Bold slot: "**上午**：", "**Morning**:"
+  const boldSlot = line.match(/^\*\*([^*]+)\*\*[：:：\s]\s*(.*)/);
+  if (boldSlot) {
+    const t = parseSlotTime(boldSlot[1]);
+    if (t) return { time: t, rest: boldSlot[2].trim() };
+  }
+
+  return null;
+}
+
+function parseItineraryText(text: string, days: number, startDate: string, lang: string): ItineraryDay[] {
+  const lines = text.split('\n');
+  const result: ItineraryDay[] = [];
+  let cur: ItineraryDay | null = null;
+
+  for (const rawLine of lines) {
+    const line = rawLine.replace(/\*\*/g, '').trim();
+    if (!line) continue;
+
+    const dayHeader = isDayHeader(rawLine.trim());
+    if (dayHeader) {
+      if (cur) result.push(cur);
+      const dateStr = offsetDate(startDate, dayHeader.dayNum - 1);
+      const { date, day } = formatDate(dateStr, lang);
+      cur = {
+        day: dayHeader.dayNum,
+        date: `${date} ${day}`,
+        title: dayHeader.title || `Day ${dayHeader.dayNum}`,
+        items: [],
+      };
+      continue;
+    }
+
+    if (!cur) continue;
+
+    const slot = isTimeSlotLine(rawLine.trim());
+    if (slot && slot.rest) {
+      // Split "place · note" or "place，note"
+      const splitMatch = slot.rest.match(/^(.+?)[，,·•]\s*(.+)$/);
+      const place = splitMatch ? splitMatch[1].trim() : slot.rest;
+      const note = splitMatch ? splitMatch[2].trim() : '';
+      cur.items.push({ time: slot.time, icon: guessIcon(place), place, note });
+      continue;
+    }
+
+    // Plain content lines within a day — treat as items if non-trivial
+    if (line.length > 2 && !line.startsWith('#')) {
+      const splitMatch = line.match(/^(.+?)[，,·•]\s*(.+)$/);
+      const place = splitMatch ? splitMatch[1].trim() : line;
+      const note = splitMatch ? splitMatch[2].trim() : '';
+      // Only add if not already a title-like line (usually the first line after a day header)
+      if (cur.items.length > 0 || cur.title) {
+        cur.items.push({ time: '', icon: guessIcon(place), place, note });
+      } else {
+        cur.title = cur.title || line;
+      }
+    }
+  }
+
+  if (cur) result.push(cur);
+
+  // Fill missing day entries up to `days`
+  const found = new Set(result.map((d) => d.day));
+  for (let i = 1; i <= days; i++) {
+    if (!found.has(i)) {
+      const dateStr = offsetDate(startDate, i - 1);
+      const { date, day } = formatDate(dateStr, lang);
+      result.push({ day: i, date: `${date} ${day}`, title: `Day ${i}`, items: [] });
+    }
+  }
+
+  return result
+    .sort((a, b) => a.day - b.day)
+    .slice(0, days)
+    .filter((d) => d.items.length > 0 || d.title);
 }
 
 function offsetDate(startDate: string, offsetDays: number): string {
