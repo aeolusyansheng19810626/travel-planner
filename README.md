@@ -8,320 +8,222 @@ app_port: 8000
 pinned: false
 ---
 
-# ✈️ 旅行规划助手
+# Travel Planner
 
-基于多智能体架构的AI旅行规划系统，使用LangGraph编排、A2A（Agent-to-Agent）协议和MCP（Model Context Protocol）。
+多智能体 AI 旅行规划系统。输入自然语言查询（中文 / 英文 / 日文），三个智能体协同完成天气分析、景点推荐和行程编排，结果实时流式呈现在编辑风格的三栏界面中。
 
-## 🌟 特性
+**作者：Sheng Yan**
 
-- **多智能体系统**：天气、景点和行程智能体协同工作
-- **LangGraph编排**：使用状态机进行智能工作流管理
-- **A2A协议**：标准化的智能体通信和发现机制
-- **MCP协议**：通过FastMCP将外部API封装为独立工具服务
-- **自然语言处理**：由大语言模型驱动
-- **实时天气**：集成Open-Meteo API（无需API密钥）
-- **智能搜索**：使用Tavily API进行景点推荐
-- **多语言界面**：支持英文、中文和日文
-- **Docker部署**：单容器Supervisor进程管理
+---
 
-## 🏗️ 架构
+## 界面预览
+
+三栏布局：左侧系统状态与示例查询 · 中间聊天流与输入框 · 右侧完整行程报告（天气 · 景点 · 时间线）
+
+---
+
+## 架构
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                  Streamlit UI (端口 7860)                   │
-└─────────────────────────┬───────────────────────────────────┘
-                          │
-┌─────────────────────────▼───────────────────────────────────┐
-│           Orchestrator (LangGraph + FastAPI)                │
-│                        端口 8000                            │
-└──────┬──────────────────┬──────────────────┬────────────────┘
-       │ A2A              │ A2A              │ A2A
-┌──────▼──────┐  ┌────────▼────────┐  ┌──────▼──────────┐
-│   天气      │  │    景点         │  │    行程         │
-│   智能体    │  │   智能体        │  │   智能体        │
-│  端口 8001  │  │  端口 8002      │  │  端口 8003      │
-└──────┬──────┘  └────────┬────────┘  └──────┬──────────┘
-       │ MCP              │ MCP              │ MCP
-┌──────▼──────┐  ┌────────▼────────┐  ┌──────▼──────────┐
-│ Weather MCP │  │ Attraction MCP  │  │    LLM MCP      │
-│  端口 8010  │  │   端口 8011     │  │   端口 8012     │
-│             │  │                 │  │                 │
-│ Open-Meteo  │  │ Tavily + Groq   │  │   Groq LLM      │
-│             │  │ (搜索+LLM清洗)  │  │                 │
-└─────────────┘  └─────────────────┘  └─────────────────┘
+┌──────────────────────────────────────────────────┐
+│         React Frontend  (Vite + TypeScript)      │
+│         编辑风格 UI · SSE 实时进度 · 三语 i18n   │
+└────────────────────┬─────────────────────────────┘
+                     │ HTTP + SSE (POST /query/stream)
+┌────────────────────▼─────────────────────────────┐
+│       Orchestrator  (FastAPI + LangGraph)         │
+│       端口 8000 · 同时提供前端静态文件            │
+└────┬───────────────┬──────────────────┬───────────┘
+     │ A2A           │ A2A              │ A2A
+┌────▼────┐    ┌─────▼─────┐    ┌──────▼──────┐
+│  天气   │    │   景点    │    │   行程      │
+│  Agent  │    │   Agent   │    │   Agent     │
+│  :8001  │    │   :8002   │    │   :8003     │
+└────┬────┘    └─────┬─────┘    └──────┬──────┘
+     │ MCP           │ MCP              │ MCP
+┌────▼────┐    ┌─────▼─────┐    ┌──────▼──────┐
+│Weather  │    │Attraction │    │   LLM MCP   │
+│MCP :8010│    │MCP :8011  │    │   :8012     │
+│Open-    │    │Tavily +   │    │   Groq      │
+│Meteo    │    │Groq 清洗  │    │             │
+└─────────┘    └───────────┘    └─────────────┘
 ```
 
-## 🚀 快速开始
+**为什么用 MCP 分层？** 智能体不直接调用任何外部 API——API 密钥和 HTTP 调用封装在 MCP Server 层，Agent 只通过 MCP 协议取数据。替换底层数据源（如换掉 Tavily）只需改 MCP Server，Agent 代码无需改动。
+
+---
+
+## 工作流程
+
+1. 用户在界面输入自然语言查询
+2. Orchestrator 的 `parse_query` 节点用 LLM 提取目的地（含本地名）、天数、偏好、语言
+3. LangGraph 串行执行三个节点，每个节点完成后通过 SSE 推送事件到前端：
+   - `parsed` → 前端显示识别到的城市和天数
+   - `weather` → 天气智能体拉取 Open-Meteo 预报
+   - `attractions` → 景点智能体搜索 Tavily 并用 LLM 清洗
+   - `itinerary` → 行程智能体调用 LLM 生成多天时间线
+   - `done` → 前端渲染完整行程报告
+4. 任意单个智能体失败时降级渲染，不中断整体流程
+
+---
+
+## 技术栈
+
+| 层 | 技术 |
+|---|---|
+| 前端 | Vite · React 18 · TypeScript · Tailwind CSS v4 |
+| 编排 | FastAPI · LangGraph · SSE 流式输出 |
+| 智能体通信 | A2A 协议（HTTP POST /tasks） |
+| 工具封装 | FastMCP（MCP Server） |
+| LLM | Groq（llama-4-scout · llama-3.1 · qwen3，自动降级） |
+| 天气数据 | Open-Meteo（免费，无需密钥） |
+| 景点搜索 | Tavily API |
+| 部署 | Docker multi-stage build · Supervisor 进程管理 |
+
+---
+
+## 快速开始
 
 ### 前置要求
 
 - Python 3.11+
-- 大语言模型 API密钥 (例如 GROQ)
-- Tavily API密钥 ([获取地址](https://tavily.com/))
+- Node.js 18+
+- Groq API Key（[免费申请](https://console.groq.com/)）
+- Tavily API Key（[免费申请](https://tavily.com/)）
 
 ### 本地开发
 
-1. **克隆仓库**
 ```bash
-git clone <repository-url>
+# 1. 克隆仓库
+git clone https://github.com/aeolusyansheng19810626/travel-planner.git
 cd travel-planner
-```
 
-2. **创建虚拟环境**
-```bash
-# 创建venv
-python -m venv venv
-
-# 激活 (Linux/Mac)
-source venv/bin/activate
-
-# 激活 (Windows)
-venv\Scripts\activate
-```
-
-3. **安装依赖**
-```bash
-pip install -r requirements.txt
-```
-
-4. **配置环境变量**
-```bash
+# 2. 配置环境变量
 cp .env.example .env
-# 编辑.env文件并添加你的API密钥
+# 编辑 .env，填入 GROQ_API_KEY 和 TAVILY_API_KEY
+
+# 3. 安装 Python 依赖
+python -m venv venv
+source venv/bin/activate        # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+
+# 4. 安装并构建前端
+cd frontend && npm install && npm run build && cd ..
+
+# 5. 启动所有服务
+./start.sh        # Linux / Mac
+start.bat         # Windows
 ```
 
-5. **启动服务**
+访问 **http://localhost:8000**
 
-**Linux/Mac:**
-```bash
-chmod +x start.sh
-./start.sh
-```
+> 前端开发模式（热更新）：在 `frontend/` 目录下运行 `npm run dev`，访问 http://localhost:5173
 
-**Windows:**
-```bash
-start.bat
-```
+### Docker
 
-6. **访问界面**
-在浏览器中打开：http://localhost:7860
-
-### Docker部署
-
-1. **构建镜像**
 ```bash
 docker build -t travel-planner .
-```
-
-2. **运行容器**
-```bash
-docker run -p 7860:7860 \
-  -e GROQ_API_KEY=你的groq密钥 \
-  -e TAVILY_API_KEY=你的tavily密钥 \
+docker run -p 8000:8000 \
+  -e GROQ_API_KEY=your_key \
+  -e TAVILY_API_KEY=your_key \
   travel-planner
 ```
 
-### HuggingFace Spaces部署
+### HuggingFace Spaces
 
-1. 在HuggingFace上创建新Space
-2. 选择"Docker"作为SDK
-3. 将此仓库推送到Space
-4. 在Space设置中添加密钥：
+1. Fork 本仓库到 HuggingFace Space（Docker SDK）
+2. 在 Space Settings → Secrets 中添加：
    - `GROQ_API_KEY`
    - `TAVILY_API_KEY`
-
-## 📖 使用示例
-
-### 示例查询
-
-**中文**
-- "帮我规划东京3天旅行"
-- "大阪2天，喜欢历史和美食"
-- "韩国首尔1天，喜欢著名景点"
-
-**English**
-- "Plan a 3-day trip to Paris with a focus on culture"
-- "New York 4 days, shopping and food"
-- "Rome 3-day historical tour"
-
-**日本語**
-- "京都1日、天気はどう？"
-- "東京2泊3日の旅行を計画して"
-
-### API端点
-
-**Orchestrator (端口 8000)**
-- `POST /query` - 自然语言查询
-- `POST /plan` - 结构化规划请求
-- `GET /agents` - 列出已发现的智能体
-- `GET /health` - 健康检查
-
-**天气智能体 (端口 8001)**
-- `POST /tasks` - 执行天气任务
-- `GET /.well-known/agent.json` - 智能体卡片
-- `GET /health` - 健康检查
-
-**景点智能体 (端口 8002)**
-- `POST /tasks` - 执行景点任务
-- `GET /.well-known/agent.json` - 智能体卡片
-- `GET /health` - 健康检查
-
-**行程智能体 (端口 8003)**
-- `POST /tasks` - 执行行程任务
-- `GET /.well-known/agent.json` - 智能体卡片
-- `GET /health` - 健康检查
-
-## 🛠️ 技术栈
-
-| 组件 | 技术 | 用途 |
-|------|------|------|
-| 编排 | LangGraph | 工作流状态管理 |
-| 智能体 | FastAPI | HTTP服务 |
-| 智能体通信 | A2A协议 | 智能体发现与交互 |
-| 工具服务 | FastMCP | 将外部API封装为MCP工具 |
-| 界面 | Streamlit | 用户界面 |
-| LLM | Groq | 自然语言处理与行程生成 |
-| 天气 | Open-Meteo | 天气数据（免费，无需密钥）|
-| 搜索 | Tavily | 景点搜索 |
-| 部署 | Docker + Supervisor | 进程管理 |
-
-## 📁 项目结构
-
-```
-travel-planner/
-├── app.py                          # Streamlit界面
-├── requirements.txt                # Python依赖
-├── .env.example                    # 环境变量模板
-├── Dockerfile                      # Docker配置
-├── supervisord.conf               # 进程管理
-├── start.sh / start.bat           # 本地启动脚本
-│
-├── mcp_servers/                   # FastMCP工具服务
-│   ├── weather_server.py          # Open-Meteo封装（端口8010）
-│   ├── attraction_server.py       # Tavily封装（端口8011）
-│   └── llm_server.py              # Groq封装（端口8012）
-│
-├── orchestrator/
-│   ├── main.py                    # FastAPI服务
-│   ├── graph.py                   # LangGraph工作流
-│   ├── llm_client.py              # Groq客户端（含模型降级）
-│   └── agent_card.json            # A2A智能体卡片
-│
-└── agents/
-    ├── weather_agent/
-    │   ├── main.py                # 天气智能体（MCP客户端）
-    │   └── agent_card.json        # 智能体元数据
-    │
-    ├── attraction_agent/
-    │   ├── main.py                # 景点智能体（MCP客户端）
-    │   └── agent_card.json        # 智能体元数据
-    │
-    └── itinerary_agent/
-        ├── main.py                # 行程智能体（MCP客户端）
-        └── agent_card.json        # 智能体元数据
-```
-
-## 🔧 配置
-
-### 环境变量
-
-```bash
-# 必需
-GROQ_API_KEY=你的groq_api密钥
-TAVILY_API_KEY=你的tavily_api密钥
-
-# 可选
-DEMO_MODE=false                    # 设为"true"可在无API密钥时演示
-```
-
-### 端口配置
-
-- **7860**: Streamlit界面（HuggingFace Spaces要求）
-- **8000**: Orchestrator
-- **8001**: 天气智能体
-- **8002**: 景点智能体
-- **8003**: 行程智能体
-- **8010**: Weather MCP Server（Open-Meteo）
-- **8011**: Attraction MCP Server（Tavily）
-- **8012**: LLM MCP Server（Groq）
-
-## 🧪 测试
-
-### 健康检查
-
-```bash
-# 检查orchestrator
-curl http://localhost:8000/health
-
-# 检查天气智能体
-curl http://localhost:8001/health
-
-# 检查景点智能体
-curl http://localhost:8002/health
-
-# 检查行程智能体
-curl http://localhost:8003/health
-```
-
-### 测试查询
-
-```bash
-curl -X POST http://localhost:8000/query \
-  -H "Content-Type: application/json" \
-  -d '{"query": "帮我规划东京3天旅行"}'
-```
-
-## 🎯 工作流程
-
-1. **用户输入**：通过Streamlit界面输入自然语言查询
-2. **查询解析**：Orchestrator使用LangGraph解析目的地、天数、偏好和语言
-3. **顺序调用**（LangGraph节点依次执行）：
-   - 天气智能体通过MCP调用Weather Server获取天气预报
-   - 景点智能体通过MCP调用Attraction Server搜索推荐景点，并用Groq LLM清洗结果
-4. **行程生成**：行程智能体通过MCP调用LLM Server，基于天气和景点数据生成详细行程
-5. **结果展示**：在界面上展示完整的旅行计划（支持中文/英文/日文）
-
-## 🔌 分层设计：为什么用MCP？
-
-本项目严格遵循三层分离架构，**智能体（Agent）不直接调用任何外部API**：
-
-```
-Orchestrator
-    ↓ A2A协议（HTTP POST /tasks）
-Agent（FastAPI）          ← 只负责任务调度，不持有API密钥
-    ↓ MCP协议（FastMCP Client）
-MCP Server（FastMCP）     ← 封装外部API，持有密钥，暴露为标准工具
-    ↓ 直接HTTP调用
-外部API（Open-Meteo / Tavily / Groq）
-```
-
-**这样设计的好处：**
-
-- **解耦**：替换底层数据源（如把Tavily换成别的搜索API）只需修改MCP Server，Agent代码无需改动
-- **复用**：同一个MCP Server可以被多个Agent或其他系统调用
-- **安全**：API密钥集中在MCP Server层，Agent本身无状态、不持有任何凭证
-- **标准化**：MCP是开放协议，MCP Server可独立部署、测试和替换
-
-## 🤝 贡献
-
-欢迎贡献！请随时提交Pull Request。
-
-## 📄 许可证
-
-MIT许可证 - 详见LICENSE文件
-
-## 👨‍💻 作者
-
-由Bob用❤️制作
-
-## 🙏 致谢
-
-- [LangGraph](https://github.com/langchain-ai/langgraph) - 工作流编排
-- [Groq](https://groq.com/) - 快速LLM推理
-- [Open-Meteo](https://open-meteo.com/) - 免费天气API
-- [Tavily](https://tavily.com/) - AI搜索API
-- [Streamlit](https://streamlit.io/) - UI框架
+3. 推送即自动构建并部署
 
 ---
 
-**注意**：本项目展示了使用现代AI工具和协议的多智能体架构。它专为教育目的设计，可以扩展更多智能体和功能。
+## 项目结构
+
+```
+travel-planner/
+├── frontend/                    # React 前端
+│   ├── src/
+│   │   ├── components/          # BrandBar · LeftRail · ChatColumn
+│   │   │                        # ResultPanel · AttrThumb · TweaksPanel
+│   │   ├── hooks/useQueryStream.ts  # SSE 流式 hook
+│   │   ├── lib/
+│   │   │   ├── adapters.ts      # 后端响应 → TripData 适配层
+│   │   │   ├── context.tsx      # 全局状态（React Context）
+│   │   │   └── i18n.ts          # zh / en / ja 三语字典
+│   │   └── styles/tokens.css    # 设计 token（颜色 · 字体 · 间距）
+│   ├── vite.config.ts
+│   └── package.json
+│
+├── orchestrator/
+│   ├── main.py                  # FastAPI · POST /query/stream (SSE)
+│   │                            # · 静态文件服务（生产环境）
+│   ├── graph.py                 # LangGraph 四节点工作流
+│   └── llm_client.py            # Groq 客户端（多模型自动降级）
+│
+├── agents/
+│   ├── weather_agent/           # 天气智能体（端口 8001）
+│   ├── attraction_agent/        # 景点智能体（端口 8002）
+│   └── itinerary_agent/         # 行程智能体（端口 8003）
+│
+├── mcp_servers/
+│   ├── weather_server.py        # Open-Meteo 封装（端口 8010）
+│   ├── attraction_server.py     # Tavily 封装（端口 8011）
+│   └── llm_server.py            # Groq 封装（端口 8012）
+│
+├── Dockerfile                   # multi-stage：Node 构建 + Python 运行
+├── supervisord.conf             # 进程管理（8 个服务）
+├── requirements.txt
+└── start.sh / start.bat
+```
+
+---
+
+## 环境变量
+
+```bash
+GROQ_API_KEY=...        # 必需：LLM 推理
+TAVILY_API_KEY=...      # 必需：景点搜索
+DEMO_MODE=false         # 可选：设为 true 时使用内置 fixture 数据（无需 API）
+```
+
+---
+
+## API 端点
+
+| 端点 | 说明 |
+|---|---|
+| `POST /query/stream` | SSE 流式查询（前端使用） |
+| `POST /query` | 一次性查询（返回完整 JSON） |
+| `GET /agents` | 列出已发现的智能体 |
+| `GET /health` | 健康检查 |
+
+---
+
+## 示例查询
+
+```
+# 中文
+帮我规划东京 3 天旅行
+北京 2 天，风景名胜
+大阪 2 天，关注美食
+
+# English
+Plan a 3-day trip to Paris focusing on culture
+New York 4 days, shopping and food
+
+# 日本語
+京都 1 日、天気はどう？
+札幌 1 日、グルメ
+```
+
+---
+
+## 致谢
+
+- [LangGraph](https://github.com/langchain-ai/langgraph) — 工作流编排
+- [Groq](https://groq.com/) — 快速 LLM 推理
+- [Open-Meteo](https://open-meteo.com/) — 免费天气 API
+- [Tavily](https://tavily.com/) — AI 搜索 API
+- [FastMCP](https://github.com/jlowin/fastmcp) — MCP Server 框架
