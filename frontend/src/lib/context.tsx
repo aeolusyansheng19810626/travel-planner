@@ -4,9 +4,6 @@ import { i18n } from './i18n';
 
 const LS_LANG = 'tp.lang';
 const LS_TWEAKS = 'tp.tweaks';
-const LS_MESSAGES = 'tp.messages';
-const LS_LAST_TRIP = 'tp.lastTrip';
-const LS_VERSION = 1;
 
 function loadLS<T>(key: string, fallback: T): T {
   try {
@@ -121,4 +118,3 @@ export function useApp() {
   return ctx;
 }
 
-export { LS_VERSION };
