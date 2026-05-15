@@ -123,7 +123,10 @@ async def process_query(request: QueryRequest):
         # Initialize state
         initial_state: TravelPlanState = {
             "query": request.query,
+            "language": "",
             "destination": "",
+            "destination_local": "",
+            "country": "",
             "days": 3,
             "preferences": [],
             "weather_info": None,
@@ -205,6 +208,8 @@ async def _stream_query(query: str) -> AsyncGenerator[str, None]:
                     yield _sse_event("parsed", {
                         "language": accumulated.get("language", ""),
                         "destination": accumulated.get("destination", ""),
+                        "destination_local": accumulated.get("destination_local", ""),
+                        "country": accumulated.get("country", ""),
                         "days": accumulated.get("days", 3),
                         "preferences": accumulated.get("preferences", []),
                     })
@@ -249,6 +254,8 @@ async def _stream_query(query: str) -> AsyncGenerator[str, None]:
         final_result = {
             "language": accumulated.get("language", ""),
             "destination": accumulated.get("destination", ""),
+            "destination_local": accumulated.get("destination_local", ""),
+            "country": accumulated.get("country", ""),
             "days": accumulated.get("days", 3),
             "preferences": accumulated.get("preferences", []),
             "weather": accumulated.get("weather_info"),

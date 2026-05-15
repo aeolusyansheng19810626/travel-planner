@@ -9,7 +9,9 @@ class TravelPlanState(TypedDict):
     """State for travel planning workflow"""
     query: str                          # Original user query
     language: str                       # Detected language (en/zh/ja)
-    destination: str                    # Parsed destination
+    destination: str                    # Parsed destination (English)
+    destination_local: str             # City name in local script (e.g. 札幌, 巴黎)
+    country: str                       # Country name in English
     days: int                          # Number of days
     preferences: List[str]             # User preferences
     weather_info: Optional[Dict]       # Weather data from weather agent
@@ -164,17 +166,23 @@ def parse_query(state: TravelPlanState) -> TravelPlanState:
         1. Determine if this is a request for travel planning or related to travel (e.g. "what about AAPL stock" is NOT related).
         2. Extract the destination city (in English, e.g., "Tokyo").
            IMPORTANT — typo & alias correction rules:
-           - The user may have typos in Chinese city names. Use context to infer the most likely intended city.
-           - Common Chinese typo patterns: 大版→大阪(Osaka), 东京→Tokyo, 巴黎→Paris, 纽约→New York, 首儿→首尔(Seoul).
+           - The user may have typos in Chinese/Japanese city names. Use context to infer the most likely intended city.
+           - Common typo patterns: 大版→大阪(Osaka), 东京→Tokyo, 巴黎→Paris, 纽约→New York, 首儿→首尔(Seoul).
            - If the query mentions food culture, takoyaki, okonomiyaki, or is paired with "大" + a wrong character, it is very likely Osaka.
            - Prefer well-known tourist cities over obscure cities when the spelling is ambiguous.
-        3. Extract the number of days (integer). If not specified, default to 3.
-        4. Extract any preferences (e.g., ["historical", "food", "nature", "shopping", "culture", "nightlife"]).
+        3. Extract the city name in its local script (e.g. "東京" for Tokyo, "巴黎" for Paris, "札幌" for Sapporo,
+           "서울" for Seoul, "Москва" for Moscow). Use the same script as the query language when possible.
+           If the city has no non-Latin local name, repeat the English name.
+        4. Extract the country name in English (e.g. "Japan", "France", "China").
+        5. Extract the number of days (integer). If not specified, default to 3.
+        6. Extract any preferences (e.g., ["historical", "food", "nature", "shopping", "culture", "nightlife"]).
 
         Respond strictly with only a valid JSON object in this format:
         {{
           "is_travel_query": true/false,
-          "destination": "City Name" or null if not found,
+          "destination": "City Name in English" or null if not found,
+          "destination_local": "City name in local script",
+          "country": "Country name in English",
           "days": integer,
           "preferences": ["pref1", "pref2"]
         }}
@@ -227,17 +235,20 @@ def parse_query(state: TravelPlanState) -> TravelPlanState:
                 "error": error_msg,
                 "messages": messages
             }
-            
+
+        destination_local = parsed_data.get("destination_local") or destination
+        country = parsed_data.get("country") or ""
+
         days = parsed_data.get("days")
         if not isinstance(days, int):
             days = 3
-            
+
         preferences = parsed_data.get("preferences", [])
         if not isinstance(preferences, list):
             preferences = []
         inferred_preferences = infer_preferences(original_query)
         preferences = list(dict.fromkeys(preferences + inferred_preferences))
-            
+
     except Exception as e:
         # Stop and return an error if parsing strictly fails, rather than silently defaulting to Tokyo
         error_msg = f"Failed to parse query: {str(e)}"
@@ -247,13 +258,15 @@ def parse_query(state: TravelPlanState) -> TravelPlanState:
             "error": error_msg,
             "messages": messages
         }
-    
+
     messages.append(get_msg("parsed_info", language, lang=language, dest=destination, days=days, prefs=preferences))
-    
+
     return {
         **state,
         "language": language,
         "destination": destination,
+        "destination_local": destination_local,
+        "country": country,
         "days": days,
         "preferences": preferences,
         "models_used": models_used,

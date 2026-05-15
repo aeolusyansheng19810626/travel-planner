@@ -396,6 +396,8 @@ function guessIcon(text: string): string {
 
 export function buildTripData(params: {
   destination: string;
+  destinationLocal?: string;
+  country?: string;
   language: string;
   days: number;
   preferences: string[];
@@ -403,14 +405,22 @@ export function buildTripData(params: {
   attractionsRaw: AttractionRaw[] | null;
   itineraryRaw: ItineraryRaw | null;
 }): TripData {
-  const { destination, language, days, preferences, weatherRaw, attractionsRaw, itineraryRaw } = params;
+  const { destination, destinationLocal, country, language, days, preferences, weatherRaw, attractionsRaw, itineraryRaw } = params;
   const key = destination.toLowerCase();
   const today = new Date().toISOString().slice(0, 10);
 
+  // LLM-returned values take priority; static dict is the fallback
+  const resolvedLocal = (destinationLocal && destinationLocal !== destination)
+    ? destinationLocal
+    : (LOCAL_NAMES[key] ?? destination);
+  const resolvedCountry = (country && country.length > 0)
+    ? country
+    : (COUNTRY_NAMES[key] ?? '');
+
   return {
     destination,
-    destination_local: LOCAL_NAMES[key] ?? destination,
-    country: COUNTRY_NAMES[key] ?? '',
+    destination_local: resolvedLocal,
+    country: resolvedCountry,
     days,
     start_date: today,
     preferences,

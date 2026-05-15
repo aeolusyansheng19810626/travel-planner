@@ -33,6 +33,8 @@ export function useQueryStream() {
     // accumulated data for adapting at the end
     let language = 'zh';
     let destination = '';
+    let destinationLocal = '';
+    let country = '';
     let days = 3;
     let preferences: string[] = [];
     let weatherRaw: WeatherRaw | null = null;
@@ -103,6 +105,8 @@ export function useQueryStream() {
         const p = d as unknown as SseParsedPayload;
         language = p.language || 'zh';
         destination = p.destination || '';
+        destinationLocal = p.destination_local || '';
+        country = p.country || '';
         days = p.days || 3;
         preferences = p.preferences || [];
         dispatch({ type: 'SET_STEP', step: 2 as StepIndex });
@@ -142,6 +146,8 @@ export function useQueryStream() {
 
         const tripData = buildTripData({
           destination,
+          destinationLocal,
+          country,
           language,
           days,
           preferences,

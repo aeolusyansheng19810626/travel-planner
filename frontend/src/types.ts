@@ -104,6 +104,8 @@ export interface AppState {
 export interface SseParsedPayload {
   language: string;
   destination: string;
+  destination_local: string;
+  country: string;
   days: number;
   preferences: string[];
 }
