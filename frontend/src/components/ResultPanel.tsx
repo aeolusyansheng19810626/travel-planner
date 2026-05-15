@@ -4,7 +4,7 @@ import AttrThumb from './AttrThumb';
 
 export default function ResultPanel() {
   const { state, t } = useApp();
-  const { hasResult, currentTrip, generating } = state;
+  const { hasResult, currentTrip, generating, lastQuery } = state;
 
   return (
     <div style={{
@@ -15,7 +15,7 @@ export default function ResultPanel() {
       {(!hasResult || !currentTrip) ? (
         <EmptyDetail generating={generating} t={t} />
       ) : (
-        <TripDetail trip={currentTrip} t={t} />
+        <TripDetail trip={currentTrip} t={t} lastQuery={lastQuery} />
       )}
     </div>
   );
@@ -69,7 +69,7 @@ function EmptyDetail({ generating, t }: { generating: boolean; t: TFunc }) {
   );
 }
 
-function TripDetail({ trip, t }: { trip: TripData; t: TFunc }) {
+function TripDetail({ trip, t, lastQuery }: { trip: TripData; t: TFunc; lastQuery: string }) {
   const {
     destination, destination_local, country, days,
     start_date, preferences, verdict, accent,
@@ -196,12 +196,13 @@ function TripDetail({ trip, t }: { trip: TripData; t: TFunc }) {
       )}
 
       {/* Section III: Itinerary */}
-      {itinerary.length > 0 && (
-        <section style={{ padding: `var(--d-section-pad, 22px) 26px 6px` }}>
-          <SectionHead num="III." title={t('section_itinerary')} note={itineraryNote} />
-          <ItineraryTimeline itinerary={itinerary} />
-        </section>
-      )}
+      <section style={{ padding: `var(--d-section-pad, 22px) 26px 6px` }}>
+        <SectionHead num="III." title={t('section_itinerary')} note={itinerary.length > 0 ? itineraryNote : undefined} />
+        {itinerary.length > 0
+          ? <ItineraryTimeline itinerary={itinerary} />
+          : <ItineraryEmpty lastQuery={lastQuery} />
+        }
+      </section>
 
       {/* Footer */}
       <div style={{
@@ -568,6 +569,50 @@ function ItinDay({ day }: { day: ItineraryDay }) {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function ItineraryEmpty({ lastQuery }: { lastQuery: string }) {
+  const retry = () => {
+    if (lastQuery) window.dispatchEvent(new CustomEvent('tp:send', { detail: { query: lastQuery } }));
+  };
+  return (
+    <div style={{
+      background: 'var(--paper)',
+      border: '1px dashed var(--rule-2)',
+      borderRadius: 'var(--radius-lg)',
+      padding: '24px 20px',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: '12px',
+      textAlign: 'center',
+    }}>
+      <span style={{ fontSize: '28px', opacity: 0.4 }}>🗓</span>
+      <div style={{ fontSize: '13px', color: 'var(--ink-3)', lineHeight: 1.5 }}>
+        行程数据未能获取，可能是首次请求时模型响应超时。
+      </div>
+      {lastQuery && (
+        <button
+          onClick={retry}
+          style={{
+            marginTop: '4px',
+            padding: '8px 20px',
+            background: 'var(--forest)',
+            color: 'var(--paper)',
+            border: 'none',
+            borderRadius: '8px',
+            fontSize: '13px',
+            cursor: 'pointer',
+            transition: 'background .15s',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--forest-2)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--forest)'; }}
+        >
+          重新生成行程
+        </button>
+      )}
     </div>
   );
 }

@@ -312,7 +312,7 @@ function parseItineraryText(text: string, days: number, startDate: string, lang:
   return result
     .sort((a, b) => a.day - b.day)
     .slice(0, days)
-    .filter((d) => d.items.length > 0 || d.title);
+    .filter((d) => d.items.length > 0);
 }
 
 function offsetDate(startDate: string, offsetDays: number): string {

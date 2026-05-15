@@ -29,6 +29,7 @@ export function useQueryStream() {
   }, []);
 
   const runStream = async (query: string) => {
+    dispatch({ type: 'SET_LAST_QUERY', query });
     // accumulated data for adapting at the end
     let language = 'zh';
     let destination = '';

@@ -35,6 +35,7 @@ function initState(): AppState {
     currentTrip: lastTrip,
     hasResult: lastTrip != null,
     tweaks,
+    lastQuery: '',
   };
 }
 
@@ -45,6 +46,7 @@ type Action =
   | { type: 'SET_GENERATING'; generating: boolean }
   | { type: 'SET_STEP'; step: StepIndex }
   | { type: 'SET_TRIP'; trip: TripData }
+  | { type: 'SET_LAST_QUERY'; query: string }
   | { type: 'CLEAR_RESULT' }
   | { type: 'CLEAR_HISTORY' };
 
@@ -62,10 +64,12 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, step: action.step };
     case 'SET_TRIP':
       return { ...state, currentTrip: action.trip, hasResult: true };
+    case 'SET_LAST_QUERY':
+      return { ...state, lastQuery: action.query };
     case 'CLEAR_RESULT':
       return { ...state, hasResult: false };
     case 'CLEAR_HISTORY':
-      return { ...state, messages: [], currentTrip: null, hasResult: false };
+      return { ...state, messages: [], currentTrip: null, hasResult: false, lastQuery: '' };
     default:
       return state;
   }

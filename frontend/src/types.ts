@@ -95,6 +95,7 @@ export interface AppState {
   currentTrip: TripData | null;
   hasResult: boolean;
   tweaks: Tweaks;
+  lastQuery: string;
 }
 
 /* SSE event payloads */
