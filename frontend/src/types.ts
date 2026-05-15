@@ -96,6 +96,8 @@ export interface AppState {
   hasResult: boolean;
   tweaks: Tweaks;
   lastQuery: string;
+  parsedDestination: string;
+  parsedDays: number;
 }
 
 /* SSE event payloads */

@@ -6,7 +6,7 @@ import type { Message, StepIndex } from '../types';
 
 export default function ChatColumn() {
   const { state, dispatch, t } = useApp();
-  const { messages, generating, step, lang, tweaks } = state;
+  const { messages, generating, step, lang, tweaks, parsedDestination, parsedDays } = state;
   const [input, setInput] = useState('');
   const streamRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -141,14 +141,34 @@ export default function ChatColumn() {
                 padding: '10px 14px',
               }}>
                 <div style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: '11px',
-                  letterSpacing: '0.12em',
-                  textTransform: 'uppercase',
-                  color: 'var(--ink-3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
                   marginBottom: '8px',
                 }}>
-                  {stepHeader}
+                  <span style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '11px',
+                    letterSpacing: '0.12em',
+                    textTransform: 'uppercase',
+                    color: 'var(--ink-3)',
+                  }}>
+                    {stepHeader}
+                  </span>
+                  {parsedDestination && step >= 2 && (
+                    <span style={{
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '10px',
+                      color: 'var(--forest)',
+                      background: 'var(--bg-sunken)',
+                      border: '1px solid var(--rule)',
+                      borderRadius: '99px',
+                      padding: '2px 8px',
+                      letterSpacing: '0.04em',
+                    }}>
+                      {parsedDestination} · {parsedDays}天
+                    </span>
+                  )}
                 </div>
                 <AgentStepChecklist step={step} steps={steps} />
               </div>

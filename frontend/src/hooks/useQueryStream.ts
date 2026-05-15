@@ -106,6 +106,7 @@ export function useQueryStream() {
         days = p.days || 3;
         preferences = p.preferences || [];
         dispatch({ type: 'SET_STEP', step: 2 as StepIndex });
+        dispatch({ type: 'SET_PARSED', destination, days });
       }
 
       else if (event === 'weather') {

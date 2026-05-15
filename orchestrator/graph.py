@@ -160,12 +160,17 @@ def parse_query(state: TravelPlanState) -> TravelPlanState:
         client = GroqClientWithFallback()
         prompt = f"""
         Analyze the following user query: "{original_query}"
-        
+
         1. Determine if this is a request for travel planning or related to travel (e.g. "what about AAPL stock" is NOT related).
         2. Extract the destination city (in English, e.g., "Tokyo").
+           IMPORTANT — typo & alias correction rules:
+           - The user may have typos in Chinese city names. Use context to infer the most likely intended city.
+           - Common Chinese typo patterns: 大版→大阪(Osaka), 东京→Tokyo, 巴黎→Paris, 纽约→New York, 首儿→首尔(Seoul).
+           - If the query mentions food culture, takoyaki, okonomiyaki, or is paired with "大" + a wrong character, it is very likely Osaka.
+           - Prefer well-known tourist cities over obscure cities when the spelling is ambiguous.
         3. Extract the number of days (integer). If not specified, default to 3.
         4. Extract any preferences (e.g., ["historical", "food", "nature", "shopping", "culture", "nightlife"]).
-        
+
         Respond strictly with only a valid JSON object in this format:
         {{
           "is_travel_query": true/false,
@@ -174,12 +179,12 @@ def parse_query(state: TravelPlanState) -> TravelPlanState:
           "preferences": ["pref1", "pref2"]
         }}
         """
-        
+
         intent_res = client.chat_completion(
             [
                 {
                     "role": "system",
-                    "content": "You extract travel-planning intent. Return only valid JSON."
+                    "content": "You extract travel-planning intent with typo correction. Return only valid JSON."
                 },
                 {"role": "user", "content": prompt}
             ],

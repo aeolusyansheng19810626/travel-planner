@@ -36,6 +36,8 @@ function initState(): AppState {
     hasResult: lastTrip != null,
     tweaks,
     lastQuery: '',
+    parsedDestination: '',
+    parsedDays: 0,
   };
 }
 
@@ -47,6 +49,7 @@ type Action =
   | { type: 'SET_STEP'; step: StepIndex }
   | { type: 'SET_TRIP'; trip: TripData }
   | { type: 'SET_LAST_QUERY'; query: string }
+  | { type: 'SET_PARSED'; destination: string; days: number }
   | { type: 'CLEAR_RESULT' }
   | { type: 'CLEAR_HISTORY' };
 
@@ -66,10 +69,12 @@ function reducer(state: AppState, action: Action): AppState {
       return { ...state, currentTrip: action.trip, hasResult: true };
     case 'SET_LAST_QUERY':
       return { ...state, lastQuery: action.query };
+    case 'SET_PARSED':
+      return { ...state, parsedDestination: action.destination, parsedDays: action.days };
     case 'CLEAR_RESULT':
       return { ...state, hasResult: false };
     case 'CLEAR_HISTORY':
-      return { ...state, messages: [], currentTrip: null, hasResult: false, lastQuery: '' };
+      return { ...state, messages: [], currentTrip: null, hasResult: false, lastQuery: '', parsedDestination: '', parsedDays: 0 };
     default:
       return state;
   }
