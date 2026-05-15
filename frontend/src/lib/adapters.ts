@@ -200,7 +200,9 @@ const SLOT_TIMES: Record<string, string> = {
 };
 
 function parseSlotTime(label: string): string {
-  const lower = label.toLowerCase().trim();
+  // Strip leading bullet/dash/star characters before matching
+  const cleaned = label.replace(/^[\s*\-•·]+/, '').trim();
+  const lower = cleaned.toLowerCase();
   for (const [key, time] of Object.entries(SLOT_TIMES)) {
     if (lower.startsWith(key.toLowerCase()) || lower === key.toLowerCase()) return time;
   }
@@ -212,8 +214,9 @@ function isDayHeader(line: string): { dayNum: number; title: string } | null {
   const enMatch = line.match(/^[#*\s]*[Dd]ay\s*(\d+)[:\s\-—]*(.*)/);
   if (enMatch) return { dayNum: parseInt(enMatch[1]), title: enMatch[2].trim() };
 
-  // Chinese: "第一天：", "第1天：", "**第二天**"
-  const zhMatch = line.match(/^[#*\s]*第([一二三四五六七八九十\d]+)天[：:：\s\-—]*(.*)/);
+  // Chinese: "第一天：", "第1天：", "第 1 天", "**第二天**"
+  // Allow optional spaces around the number (e.g. "第 1 天")
+  const zhMatch = line.match(/^[#*\s]*第\s*([一二三四五六七八九十\d]+)\s*天[：:：\s\-—]*(.*)/);
   if (zhMatch) {
     const n = zhWordToNum(zhMatch[1]);
     if (n) return { dayNum: n, title: zhMatch[2].trim() };
@@ -227,19 +230,22 @@ function isDayHeader(line: string): { dayNum: number; title: string } | null {
 }
 
 function isTimeSlotLine(line: string): { time: string; rest: string } | null {
+  // Strip leading bullets "* ", "- ", "• " before any matching
+  const stripped = line.replace(/^[\s*\-•·]+/, '');
+
   // Numeric time: "08:30 — 浅草寺", "08:30 - ..."
-  const numeric = line.match(/^(\d{1,2}:\d{2})\s*[-–—]\s*(.*)/);
+  const numeric = stripped.match(/^(\d{1,2}:\d{2})\s*[-–—]\s*(.*)/);
   if (numeric) return { time: numeric[1], rest: numeric[2].trim() };
 
-  // Named slot: "上午：", "Lunch:", "午前："
-  const namedSlot = line.match(/^([^\d：:：]{1,8})[：:：]\s*(.*)/);
+  // Named slot: "上午：活动", "Lunch: ...", "午前："
+  const namedSlot = stripped.match(/^([^\d：:：]{1,8})[：:：]\s*(.*)/);
   if (namedSlot) {
     const t = parseSlotTime(namedSlot[1]);
     if (t) return { time: t, rest: namedSlot[2].trim() };
   }
 
   // Bold slot: "**上午**：", "**Morning**:"
-  const boldSlot = line.match(/^\*\*([^*]+)\*\*[：:：\s]\s*(.*)/);
+  const boldSlot = stripped.match(/^\*\*([^*]+)\*\*[：:：\s]\s*(.*)/);
   if (boldSlot) {
     const t = parseSlotTime(boldSlot[1]);
     if (t) return { time: t, rest: boldSlot[2].trim() };
