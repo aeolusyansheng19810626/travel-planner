@@ -12,28 +12,76 @@ import type {
 
 /* Static city metadata */
 const LOCAL_NAMES: Record<string, string> = {
+  // Japan
   tokyo: '東京', kyoto: '京都', osaka: '大阪', hiroshima: '広島', nara: '奈良',
-  paris: 'Paris', lyon: 'Lyon', nice: 'Nice',
+  sapporo: '札幌', yokohama: '横浜', nagoya: '名古屋', kobe: '神戸',
+  fukuoka: '福岡', sendai: '仙台', kanazawa: '金沢', nagasaki: '長崎',
+  okinawa: '沖縄', naha: '那覇', nikko: '日光', hakone: '箱根',
+  kamakura: '鎌倉', matsumoto: '松本', beppu: '別府',
+  // France
+  paris: 'Paris', lyon: 'Lyon', nice: 'Nice', marseille: 'Marseille',
+  // USA
   'new york': 'New York', nyc: 'New York', 'new york city': 'New York',
+  'los angeles': 'Los Angeles', la: 'Los Angeles',
+  chicago: 'Chicago', 'san francisco': 'San Francisco', seattle: 'Seattle',
+  // Europe
   london: 'London', rome: 'Roma', milan: 'Milano', florence: 'Firenze',
-  barcelona: 'Barcelona', madrid: 'Madrid',
+  venice: 'Venezia', barcelona: 'Barcelona', madrid: 'Madrid',
+  amsterdam: 'Amsterdam', vienna: 'Wien', prague: 'Praha',
+  lisbon: 'Lisboa', zurich: 'Zürich',
+  // China
   beijing: '北京', shanghai: '上海', guangzhou: '广州', chengdu: '成都',
-  'hong kong': '香港', taipei: '台北',
+  'hong kong': '香港', taipei: '台北', xian: '西安', hangzhou: '杭州',
+  nanjing: '南京', wuhan: '武汉', shenzhen: '深圳', qingdao: '青岛',
+  // Asia
+  seoul: '서울', busan: '부산',
+  singapore: 'Singapore', bangkok: 'Bangkok', 'kuala lumpur': 'KL',
+  dubai: 'دبي', istanbul: 'İstanbul',
 };
 const ACCENT_COLORS: Record<string, string> = {
+  // Japan
   tokyo: '#B85530', kyoto: '#8B3D1F', osaka: '#B85530',
+  sapporo: '#2B5BA8', yokohama: '#2C5645', nagoya: '#8B3D1F',
+  fukuoka: '#9B4225', naha: '#2B7A6A', okinawa: '#2B7A6A',
+  // France
   paris: '#A8456F', lyon: '#A8456F',
+  // USA
   'new york': '#1B4F8E', nyc: '#1B4F8E',
-  rome: '#9B4225', milan: '#9B4225',
-  london: '#2C5645',
+  'los angeles': '#B85530', chicago: '#1B4F8E',
+  // Europe
+  rome: '#9B4225', milan: '#9B4225', florence: '#9B4225',
+  barcelona: '#A8456F', madrid: '#A8456F',
+  london: '#2C5645', amsterdam: '#2B5BA8',
+  // China
+  beijing: '#8B3D1F', shanghai: '#B85530',
+  // Asia
+  seoul: '#2C5645', dubai: '#C9A664',
 };
 const COUNTRY_NAMES: Record<string, string> = {
-  tokyo: 'Japan', kyoto: 'Japan', osaka: 'Japan',
-  paris: 'France', lyon: 'France',
+  // Japan
+  tokyo: 'Japan', kyoto: 'Japan', osaka: 'Japan', sapporo: 'Japan',
+  yokohama: 'Japan', nagoya: 'Japan', kobe: 'Japan', fukuoka: 'Japan',
+  sendai: 'Japan', kanazawa: 'Japan', naha: 'Japan', okinawa: 'Japan',
+  hiroshima: 'Japan', nara: 'Japan', hakone: 'Japan', kamakura: 'Japan',
+  // France
+  paris: 'France', lyon: 'France', nice: 'France', marseille: 'France',
+  // USA
   'new york': 'United States', nyc: 'United States',
-  rome: 'Italy', milan: 'Italy',
+  'los angeles': 'United States', chicago: 'United States',
+  'san francisco': 'United States', seattle: 'United States',
+  // Europe
+  rome: 'Italy', milan: 'Italy', florence: 'Italy', venice: 'Italy',
   london: 'United Kingdom',
-  beijing: 'China', shanghai: 'China',
+  barcelona: 'Spain', madrid: 'Spain',
+  amsterdam: 'Netherlands', vienna: 'Austria', prague: 'Czech Republic',
+  lisbon: 'Portugal', zurich: 'Switzerland',
+  // China
+  beijing: 'China', shanghai: 'China', guangzhou: 'China', chengdu: 'China',
+  'hong kong': 'Hong Kong', taipei: 'Taiwan', xian: 'China', hangzhou: 'China',
+  // Asia
+  seoul: 'South Korea', busan: 'South Korea',
+  singapore: 'Singapore', bangkok: 'Thailand',
+  dubai: 'UAE', istanbul: 'Turkey',
 };
 
 const WEATHER_ICONS: Record<string, string> = {
