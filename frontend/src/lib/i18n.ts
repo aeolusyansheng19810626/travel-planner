@@ -56,7 +56,7 @@ export const i18n = {
     stat_attractions_unit: '处',
     stat_verdict: '出行建议',
     forecast_label: 'FORECAST',
-    detail_footer: 'Generated · Travel Planner v2.1',
+    detail_footer: 'Travel Planner · by Sheng Yan',
     bot_result_intro: (dest_local: string, days: number) =>
       `完成！以下是为你定制的${dest_local} ${days} 日行程。`,
     error_agent: (stage: string) => `${stage} 暂时不可用，已跳过。`,
@@ -127,7 +127,7 @@ export const i18n = {
     stat_attractions_unit: '',
     stat_verdict: 'Travel Advisory',
     forecast_label: 'FORECAST',
-    detail_footer: 'Generated · Travel Planner v2.1',
+    detail_footer: 'Travel Planner · by Sheng Yan',
     bot_result_intro: (dest_local: string, days: number) =>
       `Done! Here's your custom ${days}-day itinerary for ${dest_local}.`,
     error_agent: (stage: string) => `${stage} unavailable, skipped.`,
@@ -198,7 +198,7 @@ export const i18n = {
     stat_attractions_unit: '件',
     stat_verdict: '旅行アドバイス',
     forecast_label: 'FORECAST',
-    detail_footer: 'Generated · Travel Planner v2.1',
+    detail_footer: 'Travel Planner · by Sheng Yan',
     bot_result_intro: (dest_local: string, days: number) =>
       `完了！${dest_local}の${days}日間旅程をご用意しました。`,
     error_agent: (stage: string) => `${stage} は一時的に利用できません。スキップしました。`,
