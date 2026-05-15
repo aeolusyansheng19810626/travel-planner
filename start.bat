@@ -37,13 +37,21 @@ echo Starting Itinerary Agent on port 8003...
 start "Itinerary Agent" cmd /k "cd agents\itinerary_agent && uvicorn main:app --host 0.0.0.0 --port 8003"
 timeout /t 2 /nobreak >nul
 
-REM Start orchestrator
+REM Start orchestrator (serves API + React frontend at http://localhost:8000)
 echo Starting Orchestrator on port 8000...
 start "Orchestrator" cmd /k "cd orchestrator && uvicorn main:app --host 0.0.0.0 --port 8000"
 timeout /t 3 /nobreak >nul
 
-REM Start Streamlit UI
-echo Starting Streamlit UI on port 7860...
-streamlit run app.py --server.port=7860 --server.address=0.0.0.0
+REM Build frontend if not already built
+if not exist "frontend\dist" (
+    echo Building React frontend...
+    cd frontend
+    call npm install
+    call npm run build
+    cd ..
+)
+
+echo.
+echo === All services started. Open http://localhost:8000 ===
 
 REM Made with Bob

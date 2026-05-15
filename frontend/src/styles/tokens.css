@@ -1,0 +1,169 @@
+/* ── Google Fonts (must come first) ── */
+@import url("https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&family=Noto+Serif+SC:wght@400;500;600&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap");
+
+@import "tailwindcss";
+
+/* ── Design tokens ── */
+:root {
+  --bg: #F6F1E7;
+  --bg-sunken: #EFE9DC;
+  --paper: #FBF7EE;
+  --card: #FFFFFF;
+  --ink: #1B201C;
+  --ink-2: #3D4339;
+  --ink-3: #6B6E64;
+  --ink-4: #9A9C92;
+  --rule: #E2DBC9;
+  --rule-2: #D6CDB7;
+
+  --forest: #1F3F33;
+  --forest-2: #2C5645;
+  --moss: #4B6B57;
+  --terra: #B85530;
+  --terra-soft: #E89776;
+  --gold: #C9A664;
+  --sand: #E8DCC0;
+  --sky: #6B8FA3;
+  --plum: #6B3F5C;
+
+  --shadow-sm: 0 1px 0 rgba(31,63,51,.04), 0 1px 2px rgba(31,63,51,.04);
+  --shadow-md: 0 1px 0 rgba(31,63,51,.04), 0 8px 24px -12px rgba(31,63,51,.18);
+  --shadow-lg: 0 1px 0 rgba(31,63,51,.04), 0 24px 56px -24px rgba(31,63,51,.28);
+
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 16px;
+
+  --font-display: "Instrument Serif", "Noto Serif SC", "Songti SC", serif;
+  --font-body: "Geist", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+  --font-mono: "Geist Mono", "SF Mono", Menlo, monospace;
+
+  /* density defaults */
+  --d-section-pad: 22px;
+  --d-section-gap: 16px;
+  --d-card-pad: 14px;
+  --d-attr-row-gap: 12px;
+  --d-hero-pad-y: 24px;
+}
+
+/* ── Theme variants ── */
+html[data-theme="forest"] {
+  --bg: #F1EFE8;
+  --bg-sunken: #E6E4DA;
+  --paper: #F8F6EF;
+  --forest: #1F3F33;
+  --forest-2: #2C5645;
+  --terra: #7A8B5C;
+  --gold: #B8A36E;
+}
+html[data-theme="ink"] {
+  --bg: #EFEEEA;
+  --bg-sunken: #E4E2DC;
+  --paper: #F7F6F2;
+  --forest: #1A1F1B;
+  --forest-2: #2D332E;
+  --terra: #8B3A1F;
+  --gold: #A8956C;
+  --rule: #DBD7C9;
+  --rule-2: #C9C3B0;
+}
+
+/* ── Density variants ── */
+html[data-density="compact"] {
+  --d-section-pad: 18px;
+  --d-section-gap: 14px;
+  --d-card-pad: 12px;
+  --d-attr-row-gap: 8px;
+  --d-hero-pad-y: 20px;
+}
+html[data-density="regular"] {
+  --d-section-pad: 22px;
+  --d-section-gap: 16px;
+  --d-card-pad: 14px;
+  --d-attr-row-gap: 12px;
+  --d-hero-pad-y: 24px;
+}
+html[data-density="comfy"] {
+  --d-section-pad: 28px;
+  --d-section-gap: 22px;
+  --d-card-pad: 18px;
+  --d-attr-row-gap: 16px;
+  --d-hero-pad-y: 30px;
+}
+
+/* ── Tailwind custom theme ── */
+@theme {
+  --color-bg: var(--bg);
+  --color-bg-sunken: var(--bg-sunken);
+  --color-paper: var(--paper);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-ink-4: var(--ink-4);
+  --color-rule: var(--rule);
+  --color-rule-2: var(--rule-2);
+  --color-forest: var(--forest);
+  --color-forest-2: var(--forest-2);
+  --color-moss: var(--moss);
+  --color-terra: var(--terra);
+  --color-terra-soft: var(--terra-soft);
+  --color-gold: var(--gold);
+  --color-sand: var(--sand);
+  --color-sky: var(--sky);
+  --color-plum: var(--plum);
+  --color-status-green: #3F9A6E;
+
+  --font-family-display: var(--font-display);
+  --font-family-body: var(--font-body);
+  --font-family-mono: var(--font-mono);
+
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius);
+  --radius-lg: var(--radius-lg);
+}
+
+/* ── Base reset ── */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; }
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "ss01", "cv11";
+  overflow: hidden;
+}
+button { font-family: inherit; cursor: pointer; }
+#root { height: 100%; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--rule-2); border-radius: 99px; border: 3px solid var(--bg); }
+::-webkit-scrollbar-thumb:hover { background: var(--ink-4); }
+
+/* ── Keyframes ── */
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: .35; }
+  50% { transform: scale(1.6); opacity: 0; }
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes dotpulse {
+  0%, 80%, 100% { transform: translateY(0); opacity: .4; }
+  40% { transform: translateY(-3px); opacity: 1; }
+}
+@keyframes shim { to { background-position: -200% 0; } }
+
+.shimmer {
+  background: linear-gradient(90deg, var(--paper) 0%, var(--bg-sunken) 50%, var(--paper) 100%);
+  background-size: 200% 100%;
+  animation: shim 1.4s linear infinite;
+  border-radius: 8px;
+}

@@ -51,4 +51,11 @@ out.json
 supervisord.log
 supervisord.pid
 
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# Claude Code
+.claude/
+
 # Made with Bob

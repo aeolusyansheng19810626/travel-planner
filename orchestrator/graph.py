@@ -365,30 +365,33 @@ async def generate_itinerary(state: TravelPlanState) -> TravelPlanState:
         }
 
 def should_continue(state: TravelPlanState) -> str:
-    """Determine if workflow should continue or end"""
+    """Only parse_query failure is fatal; downstream agent errors degrade gracefully."""
     if state.get("error"):
         return "end"
+    return "continue"
+
+def always_continue(_state: TravelPlanState) -> str:
+    """Weather / attractions / itinerary failures are non-fatal — keep going."""
     return "continue"
 
 def create_travel_planner_graph():
     """Create the LangGraph workflow for travel planning"""
     workflow = StateGraph(TravelPlanState)
-    
-    # Add nodes
+
     workflow.add_node("parse_query", parse_query)
     workflow.add_node("get_weather", get_weather)
     workflow.add_node("search_attractions", search_attractions)
     workflow.add_node("generate_itinerary", generate_itinerary)
-    
-    # Set entry point
+
     workflow.set_entry_point("parse_query")
-    
-    # Add edges
+
+    # parse_query failure is fatal (no destination → cannot continue)
     workflow.add_conditional_edges("parse_query", should_continue, {"continue": "get_weather", "end": END})
-    workflow.add_conditional_edges("get_weather", should_continue, {"continue": "search_attractions", "end": END})
-    workflow.add_conditional_edges("search_attractions", should_continue, {"continue": "generate_itinerary", "end": END})
+    # downstream agent failures are non-fatal: clear error and continue
+    workflow.add_conditional_edges("get_weather", always_continue, {"continue": "search_attractions"})
+    workflow.add_conditional_edges("search_attractions", always_continue, {"continue": "generate_itinerary"})
     workflow.add_edge("generate_itinerary", END)
-    
+
     return workflow.compile()
 
 # Made with Bob

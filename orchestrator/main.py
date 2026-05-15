@@ -1,6 +1,8 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Request
+from fastapi.responses import StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, AsyncGenerator
 import json
 import requests
 from pathlib import Path
@@ -8,6 +10,14 @@ import asyncio
 from graph import create_travel_planner_graph, TravelPlanState
 
 app = FastAPI(title="Travel Planner Orchestrator", version="1.0.0")
+
+@app.middleware("http")
+async def strip_api_prefix(request: Request, call_next):
+    """Allow frontend to call /api/* — strip the prefix before routing."""
+    if request.scope["path"].startswith("/api/"):
+        request.scope["path"] = request.scope["path"][4:]  # /api/health → /health
+        request.scope["raw_path"] = request.scope["path"].encode()
+    return await call_next(request)
 
 # Agent registry
 agent_registry: Dict[str, Dict[str, Any]] = {}
@@ -50,21 +60,21 @@ def discover_agents():
                 if response.status_code == 200:
                     agent_card = response.json()
                     discovered[agent_name] = agent_card
-                    print(f"✓ Discovered {agent_name} at port {port}")
+                    print(f"[OK] Discovered {agent_name} at port {port}")
                     break
                 else:
-                    print(f"✗ Attempt {attempt + 1}/{max_retries}: {agent_name} returned HTTP {response.status_code}")
-            
+                    print(f"[FAIL] Attempt {attempt + 1}/{max_retries}: {agent_name} returned HTTP {response.status_code}")
+
             except requests.exceptions.RequestException as e:
-                print(f"✗ Attempt {attempt + 1}/{max_retries}: Failed to discover {agent_name}: {e}")
-            
+                print(f"[FAIL] Attempt {attempt + 1}/{max_retries}: Failed to discover {agent_name}: {e}")
+
             # Wait before retry (except last attempt)
             if attempt < max_retries - 1:
                 time.sleep(retry_delay)
-        
+
         # All retries failed
         if agent_name not in discovered:
-            print(f"✗ Failed to discover {agent_name} after {max_retries} attempts")
+            print(f"[FAIL] Failed to discover {agent_name} after {max_retries} attempts")
     
     return discovered
 
@@ -161,6 +171,112 @@ async def process_query(request: QueryRequest):
             error=str(e)
         )
 
+def _sse_event(event: str, data: Any) -> str:
+    return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+async def _stream_query(query: str) -> AsyncGenerator[str, None]:
+    """Stream query progress as SSE events."""
+    initial_state: TravelPlanState = {
+        "query": query,
+        "language": "",
+        "destination": "",
+        "days": 3,
+        "preferences": [],
+        "weather_info": None,
+        "attractions": None,
+        "itinerary": None,
+        "models_used": {},
+        "messages": [],
+        "error": None,
+    }
+
+    accumulated: Dict[str, Any] = {**initial_state}
+
+    try:
+        async for chunk in travel_planner_graph.astream(initial_state, stream_mode="updates"):
+            for node_name, node_update in chunk.items():
+                # merge into accumulated state
+                accumulated.update(node_update)
+
+                if node_name == "parse_query":
+                    if accumulated.get("error"):
+                        yield _sse_event("fatal", {"error": accumulated["error"]})
+                        return
+                    yield _sse_event("parsed", {
+                        "language": accumulated.get("language", ""),
+                        "destination": accumulated.get("destination", ""),
+                        "days": accumulated.get("days", 3),
+                        "preferences": accumulated.get("preferences", []),
+                    })
+
+                elif node_name == "get_weather":
+                    weather_info = accumulated.get("weather_info")
+                    models = accumulated.get("models_used", {})
+                    if weather_info:
+                        yield _sse_event("weather", {
+                            "weather_info": weather_info,
+                            "model": models.get("weather"),
+                        })
+                    else:
+                        yield _sse_event("weather", {"error": "weather unavailable", "stage": "weather"})
+
+                elif node_name == "search_attractions":
+                    attractions = accumulated.get("attractions")
+                    models = accumulated.get("models_used", {})
+                    if attractions:
+                        yield _sse_event("attractions", {
+                            "attractions": attractions,
+                            "model": models.get("attraction_cleaner"),
+                        })
+                    else:
+                        yield _sse_event("attractions", {"error": "attractions unavailable", "stage": "attractions"})
+
+                elif node_name == "generate_itinerary":
+                    itinerary = accumulated.get("itinerary")
+                    models = accumulated.get("models_used", {})
+                    if itinerary and not accumulated.get("error"):
+                        yield _sse_event("itinerary", {
+                            "itinerary": itinerary,
+                            "model": models.get("itinerary_generator"),
+                        })
+                    else:
+                        yield _sse_event("itinerary", {
+                            "error": accumulated.get("error", "itinerary unavailable"),
+                            "stage": "itinerary",
+                        })
+
+        # Emit done with final state
+        final_result = {
+            "language": accumulated.get("language", ""),
+            "destination": accumulated.get("destination", ""),
+            "days": accumulated.get("days", 3),
+            "preferences": accumulated.get("preferences", []),
+            "weather": accumulated.get("weather_info"),
+            "attractions": accumulated.get("attractions"),
+            "itinerary": accumulated.get("itinerary"),
+        }
+        yield _sse_event("done", {
+            "full_result": final_result,
+            "models_used": accumulated.get("models_used", {}),
+        })
+
+    except Exception as e:
+        yield _sse_event("fatal", {"error": str(e)})
+
+
+@app.post("/query/stream")
+async def stream_query(request: QueryRequest):
+    """Process a travel planning query and stream progress as SSE."""
+    return StreamingResponse(
+        _stream_query(request.query),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
 @app.post("/plan")
 async def create_plan(
     destination: str,
@@ -172,14 +288,20 @@ async def create_plan(
         query = f"Plan a {days}-day trip to {destination}"
         if preferences:
             query += f" with interests in {', '.join(preferences)}"
-        
+
         request = QueryRequest(query=query)
         return await process_query(request)
-    
+
     except Exception as e:
         return QueryResponse(
             status="error",
             error=str(e)
         )
+
+
+# Serve the built React frontend (must be last to avoid catching API routes)
+_frontend_dist = Path(__file__).parent.parent / "frontend" / "dist"
+if _frontend_dist.exists():
+    app.mount("/", StaticFiles(directory=str(_frontend_dist), html=True), name="frontend")
 
 # Made with Bob

@@ -53,11 +53,19 @@ start_service "Weather Agent"    "cd agents/weather_agent    && uvicorn main:app
 start_service "Attraction Agent" "cd agents/attraction_agent && uvicorn main:app --host 0.0.0.0 --port 8002" 8002
 start_service "Itinerary Agent"  "cd agents/itinerary_agent  && uvicorn main:app --host 0.0.0.0 --port 8003" 8003
 
-# Start orchestrator
+# Start orchestrator (also serves frontend at http://localhost:8000)
 start_service "Orchestrator" "cd orchestrator && uvicorn main:app --host 0.0.0.0 --port 8000" 8000
 
-# Start Streamlit UI (foreground)
-echo -e "${GREEN}Starting Streamlit UI on port 7860...${NC}"
-streamlit run app.py --server.port=7860 --server.address=0.0.0.0
+# Build or start frontend dev server
+if [ -d "frontend/dist" ]; then
+    echo -e "${GREEN}Frontend already built. Serving via orchestrator at http://localhost:8000${NC}"
+else
+    echo -e "${YELLOW}Building frontend...${NC}"
+    cd frontend && npm install && npm run build && cd ..
+    echo -e "${GREEN}Frontend built. Serving via orchestrator at http://localhost:8000${NC}"
+fi
+
+echo -e "${GREEN}=== All services started. Open http://localhost:8000 ===${NC}"
+wait
 
 # Made with Bob

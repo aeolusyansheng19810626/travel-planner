@@ -1,0 +1,7 @@
+/* App-level responsive grid */
+@media (min-width: 1280px) {
+  .app-grid { grid-template-columns: 280px minmax(380px, 1fr) 480px !important; }
+}
+@media (min-width: 1480px) {
+  .app-grid { grid-template-columns: 300px minmax(420px, 1fr) 520px !important; }
+}
