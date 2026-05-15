@@ -25,15 +25,15 @@ const defaultTweaks: Tweaks = { theme: 'warm', density: 'regular', showModels: t
 function initState(): AppState {
   const lang = (loadLS<string>(LS_LANG, 'zh') as Lang) || 'zh';
   const tweaks: Tweaks = { ...defaultTweaks, ...loadLS<Partial<Tweaks>>(LS_TWEAKS, {}) };
-  const messages = loadLS<Message[]>(LS_MESSAGES, []);
-  const lastTrip = loadLS<TripData | null>(LS_LAST_TRIP, null);
+  // Chat history and last trip are intentionally NOT restored on load —
+  // each page load starts a fresh session.
   return {
     lang,
-    messages,
+    messages: [],
     generating: false,
     step: 0,
-    currentTrip: lastTrip,
-    hasResult: lastTrip != null,
+    currentTrip: null,
+    hasResult: false,
     tweaks,
     lastQuery: '',
     parsedDestination: '',
@@ -97,13 +97,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     document.documentElement.dataset.density = state.tweaks.density;
   }, [state.tweaks.theme, state.tweaks.density]);
 
-  // Persist to localStorage
+  // Persist preferences only (lang + tweaks); messages and trip reset each session
   const prev = useRef(state);
   useEffect(() => {
     if (prev.current.lang !== state.lang) saveLS(LS_LANG, state.lang);
     if (prev.current.tweaks !== state.tweaks) saveLS(LS_TWEAKS, state.tweaks);
-    if (prev.current.messages !== state.messages) saveLS(LS_MESSAGES, state.messages);
-    if (prev.current.currentTrip !== state.currentTrip) saveLS(LS_LAST_TRIP, state.currentTrip);
     prev.current = state;
   }, [state]);
 
