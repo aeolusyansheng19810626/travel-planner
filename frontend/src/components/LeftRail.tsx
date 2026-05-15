@@ -41,12 +41,8 @@ export default function LeftRail() {
 
   const handleExample = (query: string) => {
     if (state.generating) return;
-    dispatch({
-      type: 'ADD_MESSAGE',
-      message: { id: Date.now().toString(), who: 'user', kind: 'text', text: query, time: '刚刚' },
-    });
-    // actual query dispatch handled by ChatColumn via a custom event
-    window.dispatchEvent(new CustomEvent('tp:query', { detail: { query } }));
+    // ChatColumn's sendQuery handles ADD_MESSAGE + SSE trigger
+    window.dispatchEvent(new CustomEvent('tp:send', { detail: { query } }));
   };
 
   const examples = [...i18n[lang].examples] as string[];

@@ -18,17 +18,7 @@ export default function ChatColumn() {
     }
   }, [messages, step]);
 
-  // listen for example-button queries from LeftRail
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const { query } = (e as CustomEvent<{ query: string }>).detail;
-      window.dispatchEvent(new CustomEvent('tp:send', { detail: { query } }));
-    };
-    window.addEventListener('tp:query', handler);
-    return () => window.removeEventListener('tp:query', handler);
-  }, []);
-
-  // listen for actual send (tp:send dispatched by self or LeftRail)
+  // listen for send events (from Composer Enter key or LeftRail example buttons)
   useEffect(() => {
     const handler = (e: Event) => {
       const { query } = (e as CustomEvent<{ query: string }>).detail;
