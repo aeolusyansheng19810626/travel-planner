@@ -169,7 +169,7 @@ export const i18n = {
       'ローマ 3日間歴史文化の旅',
     ],
     chat_eyebrow: 'TRAVEL · PLANNER · 旅行プランナー',
-    chat_title_plain: '3つのAIが連携し',
+    chat_title_plain: '3つのAI Agentが連携し',
     chat_title_em: '旅をデザイン',
     chat_title_suffix: '。',
     chat_subtitle: '天気分析から旅程作成まで、3つのエージェントが連携してあなたの次の旅を完成させます。',
